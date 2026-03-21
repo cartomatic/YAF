@@ -41,7 +41,7 @@ Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build
 
 ## Changelog
 
-Maintain `CHANGELOG.md` in the repository root following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Update it automatically:
+Maintain `CHANGELOG.md` in the repository root following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) with changes grouped by date (`## YYYY-MM-DD`). Update it automatically:
 - When creating a PR
 - When committing on a branch that has an open PR
 

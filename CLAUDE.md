@@ -39,6 +39,12 @@ PR titles must follow [Conventional Commits](https://www.conventionalcommits.org
 
 Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. See [cheat sheet](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716) for details.
 
+## Changelog
+
+Maintain `CHANGELOG.md` in the repository root following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Update it automatically:
+- When creating a PR
+- When committing on a branch that has an open PR
+
 ## Current State
 
 The repository is in its initial phase — no source code exists yet. Only the project manifesto (`docs/general/what-and-why-or-the-other-way-round.md`) and scaffolding files are present.

@@ -46,6 +46,16 @@ At the end of each Claude Code session (or when asked), write a diary entry in `
 
 The diary serves as an honest record of the AI-assisted development experience — both successes and failures. Be candid about mistakes and what caused them.
 
+Each diary entry should include a **Communication Assessment** section evaluating how the human-AI interaction went: what was clear, what was ambiguous, and what could improve on both sides.
+
+## Communication
+
+**When in doubt, ask.** If a request has multiple valid interpretations and acting on the wrong one would waste significant effort, ask a short clarifying question before proceeding. A 10-second question beats minutes of wasted work.
+
+This applies in both directions:
+- **Claude:** Do not assume intent when a request is ambiguous. Ask before launching expensive operations (research agents, large refactors, multi-file changes). Once the intent is clear, act decisively.
+- **Human:** If Claude's output is heading in the wrong direction, redirect early and directly.
+
 ## PR Conventions
 
 PR titles must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). Format: `<type>(<optional scope>): <description>`

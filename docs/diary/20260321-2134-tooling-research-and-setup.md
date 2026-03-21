@@ -40,6 +40,29 @@ Research and configure Claude Code plugins, MCP servers, and skills for modern .
 - A custom NuGet source (`pkgs.dev.azure.com/emapasa`) in the global NuGet config caused `dotnet tool install` to fail; `--ignore-failed-sources` was needed as a workaround.
 - Learned to use `powershell -Command "Get-Date -Format 'HH:mm'"` for local time instead of guessing (saved as a memory for future sessions).
 
+## Communication Assessment
+
+### User's communication style
+
+- **Concise and direct.** Short instructions ("yes", "yup", "thnx commit") when things are on track. This works well — no noise, easy to act on.
+- **Clear corrections.** When things drifted, the redirect was unambiguous: "dude you went a bit south... I am not yet interested in .NET best practises... I would like to equip you with the proper tooling first." No room for misinterpretation on the second pass.
+- **Implicit context.** The initial request ("what plugins, skills should be useful for modern .NET development") carried an implied subject — "for you, the AI tool" — that wasn't explicitly stated. This is natural human communication but created the main misunderstanding of the session.
+
+### Claude's communication gaps
+
+- **Assumed instead of asking.** The ambiguous request had two valid interpretations: (1) tooling for Claude Code, (2) .NET patterns for the project. Instead of asking "do you mean tools for me to use, or .NET libraries and patterns for the project itself?", Claude assumed the broader interpretation and launched 5 expensive research agents. A single clarifying question would have saved significant time and tokens.
+- **Over-eagerness to act.** The instinct to immediately spin up parallel agents before confirming understanding was the root problem. Ambiguity should trigger a question, not a shotgun approach.
+- **Good recovery.** Once corrected, the focused research was on target and actionable. The course correction was quick.
+
+### What to improve
+
+Both sides should adopt a simple rule: **when something is ambiguous, ask before acting.**
+
+- **Claude:** If a request has multiple valid interpretations and the cost of getting it wrong is high (e.g., launching multiple research agents), ask a short clarifying question first. A 10-second question beats 5 minutes of wasted work.
+- **User:** When a request involves a distinction that matters (e.g., "tooling for you" vs "patterns for the project"), adding a word or two of context helps. Though this is a minor point — the user's correction was fast and clear.
+
+The concise communication style works well for this workflow. The only gap is at the start of new topics where the intent isn't yet established. Once aligned, the back-and-forth is efficient.
+
 ## Files Changed
 
 | File | Action |

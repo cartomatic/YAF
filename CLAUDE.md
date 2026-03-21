@@ -32,6 +32,19 @@ All documentation artifacts use a timestamped filename format: `yyyymmdd-hhmm-sh
 | Plans | `docs/plans/` |
 | Brainstorms | `docs/brainstorms/` |
 | Research | `docs/research/` |
+| Diary | `docs/diary/` |
+
+### Session Diary
+
+At the end of each Claude Code session (or when asked), write a diary entry in `docs/diary/` summarizing:
+
+- **Goal** — what the session set out to achieve
+- **What was achieved** — concrete outputs and files produced
+- **What went well** — effective approaches worth repeating
+- **What went wrong** — mistakes, drift from user intent, misunderstandings, with root cause analysis
+- **Other notes** — workarounds, discoveries, things to remember
+
+The diary serves as an honest record of the AI-assisted development experience — both successes and failures. Be candid about mistakes and what caused them.
 
 ## PR Conventions
 

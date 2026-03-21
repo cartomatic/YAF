@@ -23,6 +23,22 @@ YAF (Yet Another Framework) is a .NET framework intended as a starting point for
 - Preferred AI tool: Claude Code (though other tools like GitHub Copilot may be used)
 - Open source from the start; process should be documented and reproducible
 
+## Documentation Conventions
+
+All documentation artifacts use a timestamped filename format: `yyyymmdd-hhmm-short-description.md` (dashes as word separators).
+
+| Type | Location |
+|------|----------|
+| Plans | `docs/plans/` |
+| Brainstorms | `docs/brainstorms/` |
+| Research | `docs/research/` |
+
+## PR and Commit Conventions
+
+PR titles and commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). Format: `<type>(<optional scope>): <description>`
+
+Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. See [cheat sheet](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716) for details.
+
 ## Current State
 
-The repository is in its initial phase — no source code exists yet. Only the project manifesto (`docs/what-and-why-or-the-other-way-round.md`) and scaffolding files are present.
+The repository is in its initial phase — no source code exists yet. Only the project manifesto (`docs/general/what-and-why-or-the-other-way-round.md`) and scaffolding files are present.

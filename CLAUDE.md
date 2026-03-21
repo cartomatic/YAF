@@ -32,6 +32,29 @@ All documentation artifacts use a timestamped filename format: `yyyymmdd-hhmm-sh
 | Plans | `docs/plans/` |
 | Brainstorms | `docs/brainstorms/` |
 | Research | `docs/research/` |
+| Diary | `docs/diary/` |
+
+### Session Diary
+
+At the end of each Claude Code session (or when asked), write a diary entry in `docs/diary/` summarizing:
+
+- **Goal** — what the session set out to achieve
+- **What was achieved** — concrete outputs and files produced
+- **What went well** — effective approaches worth repeating
+- **What went wrong** — mistakes, drift from user intent, misunderstandings, with root cause analysis
+- **Other notes** — workarounds, discoveries, things to remember
+
+The diary serves as an honest record of the AI-assisted development experience — both successes and failures. Be candid about mistakes and what caused them.
+
+Each diary entry should include a **Communication Assessment** section evaluating how the human-AI interaction went: what was clear, what was ambiguous, and what could improve on both sides.
+
+## Communication
+
+**When in doubt, ask.** If a request has multiple valid interpretations and acting on the wrong one would waste significant effort, ask a short clarifying question before proceeding. A 10-second question beats minutes of wasted work.
+
+This applies in both directions:
+- **Claude:** Do not assume intent when a request is ambiguous. Ask before launching expensive operations (research agents, large refactors, multi-file changes). Once the intent is clear, act decisively.
+- **Human:** If Claude's output is heading in the wrong direction, redirect early and directly.
 
 ## PR Conventions
 
@@ -44,6 +67,14 @@ Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build
 Maintain `CHANGELOG.md` in the repository root following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) with changes grouped by date (`## YYYY-MM-DD`). Update it automatically:
 - When creating a PR
 - When committing on a branch that has an open PR
+
+## Claude Code Tooling
+
+See [dev setup](docs/general/dev-setup.md) for full setup instructions. In short:
+
+- Plugins, MCP servers, and permissions are configured in `.claude/settings.json` and `.mcp.json` (checked in, auto-loaded)
+- Contributors need: .NET 10+ SDK, `csharp-ls` global tool (`dotnet tool install -g csharp-ls`), GitHub CLI
+- Personal overrides go in `.claude/settings.local.json` (git-ignored)
 
 ## Current State
 

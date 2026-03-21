@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "nuget": {
+      "type": "stdio",
+      "command": "powershell",
+      "args": ["-Command", "dnx NuGet.Mcp.Server --source https://api.nuget.org/v3/index.json --yes"]
+    }
+  }
+}

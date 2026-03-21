@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet run *)",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet remove *)",
+      "Bash(dotnet list *)",
+      "Bash(dotnet tool *)",
+      "Bash(dotnet format *)",
+      "Bash(dotnet clean *)",
+      "Bash(dotnet publish *)",
+      "Bash(dotnet pack *)",
+      "Bash(dotnet sln *)",
+      "Bash(dotnet nuget *)",
+      "Bash(dotnet ef *)",
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(powershell -Command *)",
+      "WebSearch",
+      "WebFetch"
+    ]
+  },
+  "enabledPlugins": {
+    "csharp-lsp@claude-plugins-official": true,
+    "compound-engineering@every-marketplace": true,
+    "dotnet@dotnet-agent-skills": true,
+    "dotnet-skills@dotnet-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "dotnet-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "dotnet/skills"
+      }
+    },
+    "dotnet-skills": {
+      "source": {
+        "source": "github",
+        "repo": "Aaronontheweb/dotnet-skills"
+      }
+    }
+  }
+}

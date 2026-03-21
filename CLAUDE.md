@@ -45,6 +45,14 @@ Maintain `CHANGELOG.md` in the repository root following [Keep a Changelog](http
 - When creating a PR
 - When committing on a branch that has an open PR
 
+## Claude Code Tooling
+
+See [dev setup](docs/general/dev-setup.md) for full setup instructions. In short:
+
+- Plugins, MCP servers, and permissions are configured in `.claude/settings.json` and `.mcp.json` (checked in, auto-loaded)
+- Contributors need: .NET 10+ SDK, `csharp-ls` global tool (`dotnet tool install -g csharp-ls`), GitHub CLI
+- Personal overrides go in `.claude/settings.local.json` (git-ignored)
+
 ## Current State
 
 The repository is in its initial phase — no source code exists yet. Only the project manifesto (`docs/general/what-and-why-or-the-other-way-round.md`) and scaffolding files are present.

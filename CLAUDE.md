@@ -33,9 +33,9 @@ All documentation artifacts use a timestamped filename format: `yyyymmdd-hhmm-sh
 | Brainstorms | `docs/brainstorms/` |
 | Research | `docs/research/` |
 
-## PR and Commit Conventions
+## PR Conventions
 
-PR titles and commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). Format: `<type>(<optional scope>): <description>`
+PR titles must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). Format: `<type>(<optional scope>): <description>`
 
 Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. See [cheat sheet](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716) for details.
 

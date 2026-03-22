@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- YAF DDD concepts brainstorm — 22 domain concepts categorized across Domain/Application/Infrastructure layers
 - YAF library design brainstorm — package structure, CQRS abstractions, cross-cutting concerns, technology choices
 - .NET 10 web API best practices research — Clean Architecture, DDD, Wolverine, Aspire, containerization
 - Maister plugin installed and configured (`.claude/settings.json`, `docs/general/dev-setup.md`)

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- YAF library design brainstorm — package structure, CQRS abstractions, cross-cutting concerns, technology choices
+- .NET 10 web API best practices research — Clean Architecture, DDD, Wolverine, Aspire, containerization
 - Maister plugin installed and configured (`.claude/settings.json`, `docs/general/dev-setup.md`)
 - Research: Maister vs Compound Engineering comparison with combined workflow cheatsheet
 - Session diary for the Maister vs CE research session

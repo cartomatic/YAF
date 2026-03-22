@@ -10,7 +10,7 @@ The `docs/` directory is the backbone of the project — in an AI-driven workflo
 
 | Directory | Purpose |
 |-----------|---------|
-| [docs/general/](docs/general/) | Project foundations — the [manifesto](docs/general/what-and-why-or-the-other-way-round.md), [tools](docs/general/tools.md) used, and [dev setup](docs/general/dev-setup.md) instructions |
+| [docs/general/](docs/general/) | Project foundations — the [manifesto](docs/general/what-and-why-or-the-other-way-round.md) and [dev setup](docs/general/dev-setup.md) instructions |
 | [docs/plans/](docs/plans/) | Implementation plans — the "what to build next" before AI generates the code |
 | [docs/brainstorms/](docs/brainstorms/) | Exploration of ideas, approaches, and trade-offs before committing to a plan |
 | [docs/research/](docs/research/) | Technical research — evaluations of tools, patterns, and libraries |

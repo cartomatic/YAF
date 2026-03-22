@@ -12,6 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Research: Maister vs Compound Engineering comparison with combined workflow cheatsheet
 - Session diary for the Maister vs CE research session
 
+### Removed
+
+- `docs/general/tools.md` — redundant with `docs/general/dev-setup.md`
+
+### Changed
+
+- README: removed dead link to deleted `tools.md`
+
 ## 2026-03-21
 
 ### Added

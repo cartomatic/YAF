@@ -28,9 +28,16 @@
     "csharp-lsp@claude-plugins-official": true,
     "compound-engineering@every-marketplace": true,
     "dotnet@dotnet-agent-skills": true,
-    "dotnet-skills@dotnet-skills": true
+    "dotnet-skills@dotnet-skills": true,
+    "maister@maister-plugins": true
   },
   "extraKnownMarketplaces": {
+    "maister-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "SkillPanel/maister"
+      }
+    },
     "dotnet-agent-skills": {
       "source": {
         "source": "github",

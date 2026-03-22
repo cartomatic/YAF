@@ -49,8 +49,10 @@ Plugins and their marketplaces are configured in `.claude/settings.json`. They s
 ```
 /plugin marketplace add dotnet/skills
 /plugin marketplace add Aaronontheweb/dotnet-skills
+/plugin marketplace add SkillPanel/maister
 /plugin install csharp-lsp@claude-plugins-official
 /plugin install compound-engineering@every-marketplace
+/plugin install maister@maister-plugins
 /plugin install dotnet@dotnet-agent-skills
 /plugin install dotnet-skills@dotnet-skills
 ```
@@ -59,6 +61,7 @@ Plugins and their marketplaces are configured in `.claude/settings.json`. They s
 |--------|-------------|---------|
 | `csharp-lsp` | `claude-plugins-official` | C# language server — real-time diagnostics, code navigation |
 | `compound-engineering` | `every-marketplace` | Workflow orchestration, Context7 docs lookup, Playwright |
+| `maister` | `maister-plugins` | Structured, standards-aware development workflows, phase-gated execution |
 | `dotnet` | `dotnet-agent-skills` | Official Microsoft .NET skills (core, EF, diagnostics, NuGet, testing) |
 | `dotnet-skills` | `dotnet-skills` | Community .NET skills and agents (C# patterns, Aspire, performance) |
 

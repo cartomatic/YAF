@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-03-22
+
+### Added
+
+- Maister plugin installed and configured (`.claude/settings.json`, `docs/general/dev-setup.md`)
+- Research: Maister vs Compound Engineering comparison with combined workflow cheatsheet
+- Session diary for the Maister vs CE research session
+
 ## 2026-03-21
 
 ### Added

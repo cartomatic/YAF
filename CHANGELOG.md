@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- 24 Architecture Decision Records formalized from brainstorm sessions, organized by scope:
+  - Architecture (11): core architecture style, technology stack, solution structure, testing strategy, development workflow, CI/CD, CQRS/mediator, application layer patterns, public API documentation, warnings as errors, coding style
+  - Domain (5): building blocks, memento pattern, domain/integration events, result/error pattern, validation strategy
+  - Infrastructure (5): persistence strategy, cross-cutting concerns, observability, data consistency, multi-tenancy
+  - API (3): controller adapter, OpenAPI documentation, authentication and authorization
+- ADR INDEX.md at `docs/adr/` for navigating all ADRs by scope
+- Session diary for ADR formalization session
 - ADR template and organization brainstorm — 14-section template, subfolder-by-scope structure, INDEX.md convention
 - Session diary for ADR template brainstorm session
 

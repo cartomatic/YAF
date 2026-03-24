@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-03-24
+
+### Added
+
+- ADR template and organization brainstorm — 14-section template, subfolder-by-scope structure, INDEX.md convention
+- Session diary for ADR template brainstorm session
+
 ## 2026-03-22
 
 ### Added

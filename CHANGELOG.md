@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## 2026-03-25
 
+### Changed
+
+- ADR: Domain Building Blocks — removed concurrency token from `AggregateRoot<TId>`, concurrency is now opt-in via `IHasVersionInfo` on mementos
+- ADR: Cross-Cutting Infrastructure — introduced two-tier versioning: `IHasVersionInfo` for optimistic concurrency, `IVersionable : IHasVersionInfo` for time-travel snapshots + graveyard; graveyard now only applies to `IVersionable` aggregates
+- ADR: Data Consistency — updated optimistic concurrency to reference `IHasVersionInfo` on mementos instead of `AggregateRoot`
+
 ### Added
 
 - GitHub Actions PR validation workflow (`.github/workflows/pr.yml`) with build, test, coverage, format check, and Conventional Commits PR title validation

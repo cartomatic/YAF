@@ -109,15 +109,17 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject
 }
 ```
 
-**Note:** The base record cannot declare `: IMemento<TSelf, TMemento>` because C# doesn't allow abstract classes to defer `static abstract` interface members to derived types. Concrete types must explicitly implement the interface.
+The base record provides concrete `Snapshot` and `Restore` implementations. `Snapshot` delegates to `protected abstract SnapshotInternal`. `Restore` uses `RuntimeHelpers.GetUninitializedObject` to create an uninitialized `TSelf` instance, then calls `protected abstract RestoreInternal` to populate it. Consumers override only the `Internal` methods.
+
+**C# limitation:** The base record cannot declare `: IMemento<TSelf, TMemento>` because C# doesn't resolve inherited static methods for `static abstract` interface dispatch. Concrete types must declare the interface and provide a one-line explicit interface implementation that delegates to the base's `Restore`.
 
 Consumer usage:
 ```csharp
 public record Address : ValueObject<Address, AddressMemento>, IMemento<Address, AddressMemento>
 {
-    public string Street { get; init; }
-    public string City { get; init; }
-    public string PostalCode { get; init; }
+    public string Street { get; private set; }
+    public string City { get; private set; }
+    public string PostalCode { get; private set; }
 
     private Address(string street, string city, string postalCode)
     {
@@ -129,15 +131,23 @@ public record Address : ValueObject<Address, AddressMemento>, IMemento<Address, 
     public static Address Create(string street, string city, string postalCode)
         => new(street, city, postalCode);
 
-    public override void Snapshot(AddressMemento memento)
+    protected override void SnapshotInternal(AddressMemento memento)
     {
         memento.Street = Street;
         memento.City = City;
         memento.PostalCode = PostalCode;
     }
 
-    public static Address Restore(AddressMemento memento)
-        => new(memento.Street, memento.City, memento.PostalCode);
+    protected override void RestoreInternal(AddressMemento memento)
+    {
+        Street = memento.Street;
+        City = memento.City;
+        PostalCode = memento.PostalCode;
+    }
+
+    // Required: C# static abstract interface dispatch limitation
+    static Address IMemento<Address, AddressMemento>.Restore(AddressMemento memento)
+        => ValueObject<Address, AddressMemento>.Restore(memento);
 }
 ```
 

@@ -15,9 +15,9 @@ public class ColorMemento
 
 public record MementoColor : ValueObject<MementoColor, ColorMemento>, IMemento<MementoColor, ColorMemento>
 {
-    public int R { get; init; }
-    public int G { get; init; }
-    public int B { get; init; }
+    public int R { get; private set; }
+    public int G { get; private set; }
+    public int B { get; private set; }
 
     private MementoColor(int r, int g, int b)
     {
@@ -28,14 +28,22 @@ public record MementoColor : ValueObject<MementoColor, ColorMemento>, IMemento<M
 
     public static MementoColor Create(int r, int g, int b) => new(r, g, b);
 
-    public override void Snapshot(ColorMemento memento)
+    protected override void SnapshotInternal(ColorMemento memento)
     {
         memento.R = R;
         memento.G = G;
         memento.B = B;
     }
 
-    public static MementoColor Restore(ColorMemento memento) => new(memento.R, memento.G, memento.B);
+    protected override void RestoreInternal(ColorMemento memento)
+    {
+        R = memento.R;
+        G = memento.G;
+        B = memento.B;
+    }
+
+    static MementoColor IMemento<MementoColor, ColorMemento>.Restore(ColorMemento memento)
+        => ValueObject<MementoColor, ColorMemento>.Restore(memento);
 }
 
 #endregion
@@ -90,6 +98,14 @@ public class ValueObjectMementoTests
         var color = MementoColor.Create(1, 2, 3);
 
         Assert.IsNotAssignableFrom<IHydrateable<ColorMemento>>(color);
+    }
+
+    [Fact]
+    public void MementoValueObject_ImplementsIMemento()
+    {
+        var color = MementoColor.Create(1, 2, 3);
+
+        Assert.True(color is IMemento<MementoColor, ColorMemento>);
     }
 
     [Fact]

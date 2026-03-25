@@ -1,11 +1,13 @@
-name: PR Validation
+name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, edited]
 
 concurrency:
-  group: pr-${{ github.event.pull_request.number }}
+  group: ${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || format('push-{0}', github.sha) }}
   cancel-in-progress: true
 
 permissions:
@@ -15,6 +17,7 @@ permissions:
 jobs:
   validate-title:
     name: Validate PR Title
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Check Conventional Commits format
@@ -37,7 +40,7 @@ jobs:
 
   build-and-test:
     name: Build & Test
-    if: github.event.action != 'edited'
+    if: github.event_name == 'push' || github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -94,7 +97,7 @@ jobs:
         with:
           reports: coverage/**/coverage.cobertura.xml
           targetdir: coverage/report
-          reporttypes: HtmlInline;TextSummary;Cobertura
+          reporttypes: HtmlInline;TextSummary;MarkdownSummaryGithub;Cobertura
 
       - name: Display coverage summary
         run: cat coverage/report/Summary.txt
@@ -107,10 +110,11 @@ jobs:
           retention-days: 14
 
       - name: Post coverage comment
+        if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: coverage
-          path: coverage/report/Summary.txt
+          path: coverage/report/SummaryGithub.md
 
       - name: Check formatting
         run: dotnet format src/YAF.slnx --verify-no-changes

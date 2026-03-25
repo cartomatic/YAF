@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - GitVersion integration for Conventional Commits-driven semantic versioning (`GitVersion.yml`, `.config/dotnet-tools.json`)
 - Version computation and embedding in PR workflow via `gittools/actions` with `/p:Version=` pass-through
 - Version displayed in GitHub Actions step summary on every PR build
+- Visual coverage report (GitHub-flavored markdown table) posted as PR comment
+- CI workflow also runs on push to main (enables status badges)
+- CI and version badges in README
 - Code coverage collection via coverlet with ReportGenerator HTML/text summary reports uploaded as build artifacts and posted as PR comment
 
 ### Changed

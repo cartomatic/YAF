@@ -1,3 +1,4 @@
+using AwesomeAssertions;
 using Yaf.Domain.Interfaces;
 
 namespace Yaf.Domain.Tests;
@@ -6,14 +7,24 @@ namespace Yaf.Domain.Tests;
 
 public record SimpleColor(int R, int G, int B) : ValueObject;
 
-public class ColorMemento
+// Domain-level memento contract (interface — domain defines the shape)
+public interface IColorMemento
+{
+    int R { get; set; }
+    int G { get; set; }
+    int B { get; set; }
+}
+
+// Infrastructure-level concrete memento
+public class ColorMemento : IColorMemento
 {
     public int R { get; set; }
     public int G { get; set; }
     public int B { get; set; }
 }
 
-public record MementoColor : ValueObject<MementoColor, ColorMemento>, IMemento<MementoColor, ColorMemento>
+// Domain-level value object with memento support
+public record MementoColor : ValueObject<MementoColor, IColorMemento>, IMemento<MementoColor, IColorMemento>
 {
     public int R { get; private set; }
     public int G { get; private set; }
@@ -28,22 +39,19 @@ public record MementoColor : ValueObject<MementoColor, ColorMemento>, IMemento<M
 
     public static MementoColor Create(int r, int g, int b) => new(r, g, b);
 
-    protected override void SnapshotInternal(ColorMemento memento)
+    protected override void SnapshotInternal(IColorMemento memento)
     {
         memento.R = R;
         memento.G = G;
         memento.B = B;
     }
 
-    protected override void RestoreInternal(ColorMemento memento)
+    protected override void RestoreInternal(IColorMemento memento)
     {
         R = memento.R;
         G = memento.G;
         B = memento.B;
     }
-
-    static MementoColor IMemento<MementoColor, ColorMemento>.Restore(ColorMemento memento)
-        => ValueObject<MementoColor, ColorMemento>.Restore(memento);
 }
 
 #endregion
@@ -56,7 +64,7 @@ public class ValueObjectMarkerTests
         var color1 = new SimpleColor(255, 0, 0);
         var color2 = new SimpleColor(255, 0, 0);
 
-        Assert.Equal(color1, color2);
+        color1.Should().Be(color2);
     }
 
     [Fact]
@@ -65,7 +73,7 @@ public class ValueObjectMarkerTests
         var red = new SimpleColor(255, 0, 0);
         var blue = new SimpleColor(0, 0, 255);
 
-        Assert.NotEqual(red, blue);
+        red.Should().NotBe(blue);
     }
 
     [Fact]
@@ -73,7 +81,7 @@ public class ValueObjectMarkerTests
     {
         var color = new SimpleColor(255, 0, 0);
 
-        Assert.IsAssignableFrom<ValueObject>(color);
+        color.Should().BeAssignableTo<ValueObject>();
     }
 }
 
@@ -87,9 +95,9 @@ public class ValueObjectMementoTests
 
         color.Snapshot(memento);
 
-        Assert.Equal(10, memento.R);
-        Assert.Equal(20, memento.G);
-        Assert.Equal(30, memento.B);
+        memento.R.Should().Be(10);
+        memento.G.Should().Be(20);
+        memento.B.Should().Be(30);
     }
 
     [Fact]
@@ -97,7 +105,7 @@ public class ValueObjectMementoTests
     {
         var color = MementoColor.Create(1, 2, 3);
 
-        Assert.IsNotAssignableFrom<IHydrateable<ColorMemento>>(color);
+        color.Should().NotBeAssignableTo<IHydrateable<IColorMemento>>();
     }
 
     [Fact]
@@ -105,7 +113,7 @@ public class ValueObjectMementoTests
     {
         var color = MementoColor.Create(1, 2, 3);
 
-        Assert.True(color is IMemento<MementoColor, ColorMemento>);
+        (color is IMemento<MementoColor, IColorMemento>).Should().BeTrue();
     }
 
     [Fact]
@@ -115,9 +123,9 @@ public class ValueObjectMementoTests
 
         var color = MementoColor.Restore(memento);
 
-        Assert.Equal(10, color.R);
-        Assert.Equal(20, color.G);
-        Assert.Equal(30, color.B);
+        color.R.Should().Be(10);
+        color.G.Should().Be(20);
+        color.B.Should().Be(30);
     }
 
     [Fact]
@@ -129,25 +137,18 @@ public class ValueObjectMementoTests
         original.Snapshot(memento);
         var restored = MementoColor.Restore(memento);
 
-        Assert.Equal(original, restored);
+        restored.Should().Be(original);
     }
 
     [Fact]
-    public void MementoValueObject_Restore_CanBeCalledGenerically()
+    public void MementoValueObject_Restore_CanBeCalledViaConcreteType()
     {
         var memento = new ColorMemento { R = 42, G = 43, B = 44 };
 
-        var restored = RestoreGeneric<MementoColor, ColorMemento>(memento);
+        var restored = MementoColor.Restore(memento);
 
-        Assert.Equal(42, restored.R);
-        Assert.Equal(43, restored.G);
-        Assert.Equal(44, restored.B);
-    }
-
-    private static TSelf RestoreGeneric<TSelf, TMemento>(TMemento memento)
-        where TSelf : IMemento<TSelf, TMemento>
-        where TMemento : class
-    {
-        return TSelf.Restore(memento);
+        restored.R.Should().Be(42);
+        restored.G.Should().Be(43);
+        restored.B.Should().Be(44);
     }
 }

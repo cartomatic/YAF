@@ -1,6 +1,7 @@
 # YAF
 
 [![CI](https://github.com/cartomatic/YAF/actions/workflows/pr.yml/badge.svg?branch=main)](https://github.com/cartomatic/YAF/actions/workflows/pr.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/mika666/e6a6ce53ba94650bde4c6c851b13e4f7/raw/yaf-coverage.json)](https://github.com/cartomatic/YAF/actions/workflows/pr.yml)
 [![Version](https://img.shields.io/github/v/tag/cartomatic/YAF?sort=semver&label=version)](https://github.com/cartomatic/YAF/tags)
 
 Yet Another Framework — a .NET framework for business applications, built entirely by AI.

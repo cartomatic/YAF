@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## 2026-03-25
 
+### Added
+
+- Dynamic test coverage badge in README (shields.io endpoint via GitHub Gist)
+- Automatic git tagging on main merge — `tag-version` job creates `v{semver}` tags using GitVersion-calculated version
+
 ### Changed
 
 - ADR: Domain Building Blocks — removed concurrency token from `AggregateRoot<TId>`, concurrency is now opt-in via `IHasVersionInfo` on mementos

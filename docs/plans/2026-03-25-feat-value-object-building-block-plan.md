@@ -111,11 +111,11 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject
 
 The base record provides concrete `Snapshot` and `Restore` implementations. `Snapshot` delegates to `protected abstract SnapshotCore`. `Restore` uses `RuntimeHelpers.GetUninitializedObject` to create an uninitialized `TSelf` instance, calls `protected abstract RestoreCore` to populate it, then calls `protected abstract Validate` to enforce invariants. Consumers override the `Core` and `Validate` methods.
 
-**Note:** Properties must use `{ get; private set; }` — positional record parameters and `init` accessors are not compatible with memento restoration. Concrete types must also declare `: IMemento<TSelf, TMemento>` on their type definition.
+**Note:** Properties must use `{ get; private set; }` — positional record parameters and `init` accessors are not compatible with memento restoration. The base record implements `IMemento<TSelf, TMemento>` directly, so concrete types do not need to declare the interface.
 
 Consumer usage:
 ```csharp
-public record Address : ValueObject<Address, IAddressMemento>, IMemento<Address, IAddressMemento>
+public record Address : ValueObject<Address, IAddressMemento>
 {
     public string Street { get; private set; }
     public string City { get; private set; }

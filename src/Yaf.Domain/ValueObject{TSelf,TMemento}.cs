@@ -14,7 +14,7 @@ namespace Yaf.Domain;
 /// </remarks>
 /// <typeparam name="TSelf">The concrete value object type (CRTP pattern).</typeparam>
 /// <typeparam name="TMemento">The memento contract — typically an interface at the domain level.</typeparam>
-public abstract record ValueObject<TSelf, TMemento> : ValueObject
+public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSelf, TMemento>
     where TSelf : ValueObject<TSelf, TMemento>
     where TMemento : class
 {

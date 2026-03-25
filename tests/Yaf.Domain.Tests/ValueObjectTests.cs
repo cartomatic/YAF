@@ -50,7 +50,7 @@ public class ValueObjectMementoTests
         public int B { get; set; }
     }
 
-    private record MementoColor : ValueObject<MementoColor, IColorMemento>, IMemento<MementoColor, IColorMemento>
+    private record MementoColor : ValueObject<MementoColor, IColorMemento>
     {
         public int R { get; private set; }
         public int G { get; private set; }

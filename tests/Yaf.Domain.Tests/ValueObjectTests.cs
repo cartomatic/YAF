@@ -3,77 +3,10 @@ using Yaf.Domain.Interfaces;
 
 namespace Yaf.Domain.Tests;
 
-#region Test fixtures
-
-public record SimpleColor(int R, int G, int B) : ValueObject;
-
-// Domain-level memento contract (interface — domain defines the shape)
-public interface IColorMemento
-{
-    int R { get; set; }
-    int G { get; set; }
-    int B { get; set; }
-}
-
-// Infrastructure-level concrete memento
-public class ColorMemento : IColorMemento
-{
-    public int R { get; set; }
-    public int G { get; set; }
-    public int B { get; set; }
-}
-
-// Domain-level value object with memento support
-public record MementoColor : ValueObject<MementoColor, IColorMemento>, IMemento<MementoColor, IColorMemento>
-{
-    public int R { get; private set; }
-    public int G { get; private set; }
-    public int B { get; private set; }
-
-    private MementoColor(int r, int g, int b)
-    {
-        R = r;
-        G = g;
-        B = b;
-    }
-
-    public static MementoColor Create(int r, int g, int b) => new(r, g, b);
-
-    protected override void SnapshotCore(IColorMemento memento)
-    {
-        memento.R = R;
-        memento.G = G;
-        memento.B = B;
-    }
-
-    protected override void RestoreCore(IColorMemento memento)
-    {
-        R = memento.R;
-        G = memento.G;
-        B = memento.B;
-    }
-
-    protected override IReadOnlyCollection<IError> Validate()
-    {
-        var errors = new List<IError>();
-
-        if (R < 0 || R > 255)
-            errors.Add(new ColorError("INVALID_R", $"R must be 0-255, got {R}"));
-        if (G < 0 || G > 255)
-            errors.Add(new ColorError("INVALID_G", $"G must be 0-255, got {G}"));
-        if (B < 0 || B > 255)
-            errors.Add(new ColorError("INVALID_B", $"B must be 0-255, got {B}"));
-
-        return errors;
-    }
-
-    private record ColorError(string Code, string Message) : IError;
-}
-
-#endregion
-
 public class ValueObjectMarkerTests
 {
+    private record SimpleColor(int R, int G, int B) : ValueObject;
+
     [Fact]
     public void Equality_WithSameValues_ReturnsTrue()
     {
@@ -103,6 +36,66 @@ public class ValueObjectMarkerTests
 
 public class ValueObjectMementoTests
 {
+    private interface IColorMemento
+    {
+        int R { get; set; }
+        int G { get; set; }
+        int B { get; set; }
+    }
+
+    private class ColorMemento : IColorMemento
+    {
+        public int R { get; set; }
+        public int G { get; set; }
+        public int B { get; set; }
+    }
+
+    private record MementoColor : ValueObject<MementoColor, IColorMemento>, IMemento<MementoColor, IColorMemento>
+    {
+        public int R { get; private set; }
+        public int G { get; private set; }
+        public int B { get; private set; }
+
+        private MementoColor(int r, int g, int b)
+        {
+            R = r;
+            G = g;
+            B = b;
+        }
+
+        public static MementoColor Create(int r, int g, int b) => new(r, g, b);
+
+        protected override void SnapshotCore(IColorMemento memento)
+        {
+            memento.R = R;
+            memento.G = G;
+            memento.B = B;
+        }
+
+        protected override void RestoreCore(IColorMemento memento)
+        {
+            R = memento.R;
+            G = memento.G;
+            B = memento.B;
+        }
+
+        protected override IReadOnlyCollection<IError> Validate()
+        {
+            var errors = new List<IError>();
+
+            if (R < 0 || R > 255)
+                errors.Add(new ColorError("INVALID_R", $"R must be 0-255, got {R}"));
+            if (G < 0 || G > 255)
+                errors.Add(new ColorError("INVALID_G", $"G must be 0-255, got {G}"));
+            if (B < 0 || B > 255)
+                errors.Add(new ColorError("INVALID_B", $"B must be 0-255, got {B}"));
+
+            return errors;
+        }
+
+        private record ColorError(string Code, string Message) : IError;
+    }
+
     [Fact]
     public void Snapshot_WithValidState_PopulatesMemento()
     {

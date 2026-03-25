@@ -19,11 +19,16 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject
     where TMemento : class
 {
     /// <inheritdoc cref="IMemento{TSelf,TMemento}.Snapshot"/>
-    public void Snapshot(TMemento memento) => SnapshotCore(memento);
+    public void Snapshot(TMemento memento)
+    {
+        ArgumentNullException.ThrowIfNull(memento);
+        SnapshotCore(memento);
+    }
 
     /// <inheritdoc cref="IMemento{TSelf,TMemento}.Restore"/>
     public static TSelf Restore(TMemento memento)
     {
+        ArgumentNullException.ThrowIfNull(memento);
         var instance = (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
         instance.RestoreCore(memento);
 

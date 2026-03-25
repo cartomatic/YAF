@@ -23,9 +23,20 @@ public sealed class ValidationException : Exception
     /// <param name="objectType">The type that failed validation.</param>
     /// <param name="errors">The validation errors.</param>
     public ValidationException(Type objectType, IReadOnlyCollection<IError> errors)
-        : base($"Validation failed for {objectType.Name}: {string.Join("; ", errors.Select(e => $"{e.Code}: {e.Message}"))}")
+        : base(FormatMessage(objectType, errors))
     {
+        ArgumentNullException.ThrowIfNull(objectType);
+        ArgumentNullException.ThrowIfNull(errors);
+
         ObjectType = objectType;
         Errors = errors;
+    }
+
+    private static string FormatMessage(Type objectType, IReadOnlyCollection<IError> errors)
+    {
+        ArgumentNullException.ThrowIfNull(objectType);
+        ArgumentNullException.ThrowIfNull(errors);
+
+        return $"Validation failed for {objectType.Name}: {string.Join("; ", errors.Select(e => $"{e.Code}: {e.Message}"))}";
     }
 }

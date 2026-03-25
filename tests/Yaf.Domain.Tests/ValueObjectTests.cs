@@ -39,19 +39,35 @@ public record MementoColor : ValueObject<MementoColor, IColorMemento>, IMemento<
 
     public static MementoColor Create(int r, int g, int b) => new(r, g, b);
 
-    protected override void SnapshotInternal(IColorMemento memento)
+    protected override void SnapshotCore(IColorMemento memento)
     {
         memento.R = R;
         memento.G = G;
         memento.B = B;
     }
 
-    protected override void RestoreInternal(IColorMemento memento)
+    protected override void RestoreCore(IColorMemento memento)
     {
         R = memento.R;
         G = memento.G;
         B = memento.B;
     }
+
+    protected override IReadOnlyCollection<IError> Validate()
+    {
+        var errors = new List<IError>();
+
+        if (R < 0 || R > 255)
+            errors.Add(new ColorError("INVALID_R", $"R must be 0-255, got {R}"));
+        if (G < 0 || G > 255)
+            errors.Add(new ColorError("INVALID_G", $"G must be 0-255, got {G}"));
+        if (B < 0 || B > 255)
+            errors.Add(new ColorError("INVALID_B", $"B must be 0-255, got {B}"));
+
+        return errors;
+    }
+
+    private record ColorError(string Code, string Message) : IError;
 }
 
 #endregion
@@ -59,7 +75,7 @@ public record MementoColor : ValueObject<MementoColor, IColorMemento>, IMemento<
 public class ValueObjectMarkerTests
 {
     [Fact]
-    public void SimpleValueObject_WithSameValues_AreEqual()
+    public void Equality_WithSameValues_ReturnsTrue()
     {
         var color1 = new SimpleColor(255, 0, 0);
         var color2 = new SimpleColor(255, 0, 0);
@@ -68,7 +84,7 @@ public class ValueObjectMarkerTests
     }
 
     [Fact]
-    public void SimpleValueObject_WithDifferentValues_AreNotEqual()
+    public void Equality_WithDifferentValues_ReturnsFalse()
     {
         var red = new SimpleColor(255, 0, 0);
         var blue = new SimpleColor(0, 0, 255);
@@ -77,7 +93,7 @@ public class ValueObjectMarkerTests
     }
 
     [Fact]
-    public void SimpleValueObject_IsValueObject()
+    public void TypeHierarchy_WhenInherited_IsAssignableToValueObject()
     {
         var color = new SimpleColor(255, 0, 0);
 
@@ -88,7 +104,7 @@ public class ValueObjectMarkerTests
 public class ValueObjectMementoTests
 {
     [Fact]
-    public void MementoValueObject_Snapshot_PopulatesMemento()
+    public void Snapshot_WithValidState_PopulatesMemento()
     {
         var color = MementoColor.Create(10, 20, 30);
         var memento = new ColorMemento();
@@ -101,15 +117,15 @@ public class ValueObjectMementoTests
     }
 
     [Fact]
-    public void MementoValueObject_DoesNotImplementIHydrateable()
+    public void TypeHierarchy_AsValueObject_DoesNotImplementIHydratable()
     {
         var color = MementoColor.Create(1, 2, 3);
 
-        color.Should().NotBeAssignableTo<IHydrateable<IColorMemento>>();
+        color.Should().NotBeAssignableTo<IHydratable<IColorMemento>>();
     }
 
     [Fact]
-    public void MementoValueObject_ImplementsIMemento()
+    public void TypeHierarchy_AsValueObject_ImplementsIMemento()
     {
         var color = MementoColor.Create(1, 2, 3);
 
@@ -117,7 +133,7 @@ public class ValueObjectMementoTests
     }
 
     [Fact]
-    public void MementoValueObject_Restore_CreatesEquivalentObject()
+    public void Restore_WithValidMemento_CreatesEquivalentObject()
     {
         var memento = new ColorMemento { R = 10, G = 20, B = 30 };
 
@@ -129,7 +145,7 @@ public class ValueObjectMementoTests
     }
 
     [Fact]
-    public void MementoValueObject_SnapshotThenRestore_RoundTrips()
+    public void Restore_AfterSnapshot_RoundTripsCorrectly()
     {
         var original = MementoColor.Create(100, 150, 200);
         var memento = new ColorMemento();
@@ -141,14 +157,13 @@ public class ValueObjectMementoTests
     }
 
     [Fact]
-    public void MementoValueObject_Restore_CanBeCalledViaConcreteType()
+    public void Restore_WithInvalidMemento_ThrowsValidationException()
     {
-        var memento = new ColorMemento { R = 42, G = 43, B = 44 };
+        var memento = new ColorMemento { R = 999, G = 20, B = 30 };
 
-        var restored = MementoColor.Restore(memento);
+        var act = () => MementoColor.Restore(memento);
 
-        restored.R.Should().Be(42);
-        restored.G.Should().Be(43);
-        restored.B.Should().Be(44);
+        act.Should().Throw<ValidationException>()
+            .Which.Errors.Should().ContainSingle(e => e.Code == "INVALID_R");
     }
 }

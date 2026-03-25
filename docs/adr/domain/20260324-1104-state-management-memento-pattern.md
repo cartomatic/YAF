@@ -108,7 +108,7 @@ public interface IMemento<TSelf, TMemento>
 }
 
 // Yaf.Domain.Interfaces — optional hydration (mutable entities only)
-public interface IHydrateable<TMemento>
+public interface IHydratable<TMemento>
     where TMemento : class
 {
     void Hydrate(TMemento memento);
@@ -117,8 +117,8 @@ public interface IHydrateable<TMemento>
 
 **Why two interfaces?**
 - Value objects are immutable records — `Hydrate` (mutate self) is nonsensical. They implement only `IMemento<TSelf, TMemento>`.
-- Entities are mutable — they implement both `IMemento` and `IHydrateable`. `Hydrate` reloads state into an existing tracked instance (e.g., EF Core change tracker). `Restore` creates a new instance for initial materialization.
-- Infrastructure can check `is IHydrateable<TMemento>` to decide between hydrate-in-place vs restore-as-new.
+- Entities are mutable — they implement both `IMemento` and `IHydratable`. `Hydrate` reloads state into an existing tracked instance (e.g., EF Core change tracker). `Restore` creates a new instance for initial materialization.
+- Infrastructure can check `is IHydratable<TMemento>` to decide between hydrate-in-place vs restore-as-new.
 
 **C# limitation:** Abstract base types (e.g., `ValueObject<TSelf, TMemento>`) cannot declare `: IMemento<TSelf, TMemento>` because C# does not allow abstract classes to defer `static abstract` interface members to derived types. Concrete types must explicitly implement the interface.
 
@@ -141,7 +141,7 @@ EF Core loads memento from database
       → domain reconstructs rich types (typed IDs, value objects, enumerations)
 ```
 
-**Load (existing instance — entities with IHydrateable only):**
+**Load (existing instance — entities with IHydratable only):**
 ```
 EF Core loads memento from database
   → infrastructure decrypts [Encryptable] properties
@@ -154,7 +154,7 @@ EF Core loads memento from database
 | Concern | Owner |
 |---------|-------|
 | `IMemento<TSelf, TMemento>` interface | Yaf.Domain.Interfaces |
-| `IHydrateable<TMemento>` interface | Yaf.Domain.Interfaces |
+| `IHydratable<TMemento>` interface | Yaf.Domain.Interfaces |
 | `Snapshot` / `Restore` / `Hydrate` methods | Domain objects (consumer-defined) |
 | Concrete memento types (DTOs) | Yaf.Infrastructure (consumer-defined) |
 | EF Core entity configuration for mementos | Yaf.Infrastructure (consumer-defined) |

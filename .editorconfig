@@ -55,10 +55,6 @@ dotnet_naming_symbols.private_field_symbols.applicable_accessibilities = private
 dotnet_naming_style.camel_case_with_underscore.required_prefix = _
 dotnet_naming_style.camel_case_with_underscore.capitalization = camel_case
 
-# XML documentation
-[*.cs]
-dotnet_diagnostic.CS1591.severity = warning
-
 # Test projects — relax documentation requirement
 [*Tests/**/*.cs]
 dotnet_diagnostic.CS1591.severity = none

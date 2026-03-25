@@ -1,25 +1,38 @@
 using System.Runtime.CompilerServices;
+using Yaf.Domain.Interfaces;
 
 namespace Yaf.Domain;
 
 /// <summary>
 /// Base record for value objects that support memento-based persistence.
-/// Concrete types must override <see cref="SnapshotInternal"/> and <see cref="RestoreInternal"/>.
+/// Concrete types must override <see cref="SnapshotCore"/>, <see cref="RestoreCore"/>,
+/// and <see cref="Validate"/>.
 /// </summary>
+/// <remarks>
+/// Properties must use <c>{ get; private set; }</c> — positional record parameters
+/// and <c>init</c> accessors are not compatible with memento restoration.
+/// </remarks>
 /// <typeparam name="TSelf">The concrete value object type (CRTP pattern).</typeparam>
 /// <typeparam name="TMemento">The memento contract — typically an interface at the domain level.</typeparam>
 public abstract record ValueObject<TSelf, TMemento> : ValueObject
     where TSelf : ValueObject<TSelf, TMemento>
     where TMemento : class
 {
-    /// <inheritdoc cref="Interfaces.IMemento{TSelf,TMemento}.Snapshot"/>
-    public void Snapshot(TMemento memento) => SnapshotInternal(memento);
+    /// <inheritdoc cref="IMemento{TSelf,TMemento}.Snapshot"/>
+    public void Snapshot(TMemento memento) => SnapshotCore(memento);
 
-    /// <inheritdoc cref="Interfaces.IMemento{TSelf,TMemento}.Restore"/>
+    /// <inheritdoc cref="IMemento{TSelf,TMemento}.Restore"/>
     public static TSelf Restore(TMemento memento)
     {
         var instance = (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
-        instance.RestoreInternal(memento);
+        instance.RestoreCore(memento);
+
+        var errors = instance.Validate();
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(typeof(TSelf), errors);
+        }
+
         return instance;
     }
 
@@ -27,11 +40,18 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject
     /// Populates the provided memento with the current state of this value object.
     /// </summary>
     /// <param name="memento">The memento instance to populate.</param>
-    protected abstract void SnapshotInternal(TMemento memento);
+    protected abstract void SnapshotCore(TMemento memento);
 
     /// <summary>
     /// Restores the state of this value object from the provided memento.
     /// </summary>
     /// <param name="memento">The memento instance to restore from.</param>
-    protected abstract void RestoreInternal(TMemento memento);
+    protected abstract void RestoreCore(TMemento memento);
+
+    /// <summary>
+    /// Validates the state of this value object after restoration from a memento.
+    /// Return an empty collection if the state is valid.
+    /// </summary>
+    /// <returns>A collection of validation errors, empty if valid.</returns>
+    protected abstract IReadOnlyCollection<IError> Validate();
 }

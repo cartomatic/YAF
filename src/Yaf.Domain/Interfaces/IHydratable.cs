@@ -5,7 +5,7 @@ namespace Yaf.Domain.Interfaces;
 /// Value objects are immutable and should not implement this interface.
 /// </summary>
 /// <typeparam name="TMemento">The memento type to hydrate from.</typeparam>
-public interface IHydrateable<TMemento>
+public interface IHydratable<TMemento>
     where TMemento : class
 {
     /// <summary>

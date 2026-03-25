@@ -31,7 +31,7 @@ public interface IMemento<TSelf, TMemento>
 }
 
 // Optional hydration contract — implemented by mutable domain objects (entities)
-public interface IHydrateable<TMemento>
+public interface IHydratable<TMemento>
     where TMemento : class
 {
     void Hydrate(TMemento memento);
@@ -42,13 +42,13 @@ public interface IHydrateable<TMemento>
 
 **Why two interfaces?**
 - **Value objects** are immutable records — `Hydrate` (mutate self) is nonsensical. They should only implement `IMemento<TSelf, TMemento>` with `Snapshot` and `Restore`.
-- **Entities** are mutable — they implement both `IMemento` and `IHydrateable`. `Hydrate` is useful for reloading state into an existing tracked instance (e.g., EF Core change tracker). `Restore` is used for initial materialization.
+- **Entities** are mutable — they implement both `IMemento` and `IHydratable`. `Hydrate` is useful for reloading state into an existing tracked instance (e.g., EF Core change tracker). `Restore` is used for initial materialization.
 - No throwing `NotSupportedException` stubs — types only implement what they actually support.
-- Infrastructure can check `is IHydrateable<TMemento>` to decide between hydrate-in-place vs restore-as-new.
+- Infrastructure can check `is IHydratable<TMemento>` to decide between hydrate-in-place vs restore-as-new.
 
 **Changes from original ADR:**
 - `void Snapshot(TMemento memento)` — **unchanged** from original ADR, now on `IMemento<TSelf, TMemento>`
-- `void Hydrate(TMemento memento)` — **moved** to separate `IHydrateable<TMemento>` interface. Only implemented by mutable types.
+- `void Hydrate(TMemento memento)` — **moved** to separate `IHydratable<TMemento>` interface. Only implemented by mutable types.
 - **Added** `static abstract TSelf Restore(TMemento memento)` on `IMemento<TSelf, TMemento>` — creates a new instance. Works for both value objects and entities.
 
 **ADR impact:** The memento ADR (`docs/adr/domain/20260324-1104-state-management-memento-pattern.md`) needs updating to reflect this new contract shape. The save/load flow descriptions remain valid — only the interface signature changes.
@@ -87,10 +87,10 @@ public interface IMemento<TSelf, TMemento>
 ```
 
 ```csharp
-// src/Yaf.Domain/Interfaces/IHydrateable.cs
+// src/Yaf.Domain/Interfaces/IHydratable.cs
 namespace Yaf.Domain.Interfaces;
 
-public interface IHydrateable<TMemento>
+public interface IHydratable<TMemento>
     where TMemento : class
 {
     void Hydrate(TMemento memento);
@@ -109,13 +109,13 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject
 }
 ```
 
-The base record provides concrete `Snapshot` and `Restore` implementations. `Snapshot` delegates to `protected abstract SnapshotInternal`. `Restore` uses `RuntimeHelpers.GetUninitializedObject` to create an uninitialized `TSelf` instance, then calls `protected abstract RestoreInternal` to populate it. Consumers override only the `Internal` methods.
+The base record provides concrete `Snapshot` and `Restore` implementations. `Snapshot` delegates to `protected abstract SnapshotCore`. `Restore` uses `RuntimeHelpers.GetUninitializedObject` to create an uninitialized `TSelf` instance, calls `protected abstract RestoreCore` to populate it, then calls `protected abstract Validate` to enforce invariants. Consumers override the `Core` and `Validate` methods.
 
-**C# limitation:** The base record cannot declare `: IMemento<TSelf, TMemento>` because C# doesn't resolve inherited static methods for `static abstract` interface dispatch. Concrete types must declare the interface and provide a one-line explicit interface implementation that delegates to the base's `Restore`.
+**Note:** Properties must use `{ get; private set; }` — positional record parameters and `init` accessors are not compatible with memento restoration. Concrete types must also declare `: IMemento<TSelf, TMemento>` on their type definition.
 
 Consumer usage:
 ```csharp
-public record Address : ValueObject<Address, AddressMemento>, IMemento<Address, AddressMemento>
+public record Address : ValueObject<Address, IAddressMemento>, IMemento<Address, IAddressMemento>
 {
     public string Street { get; private set; }
     public string City { get; private set; }
@@ -131,23 +131,25 @@ public record Address : ValueObject<Address, AddressMemento>, IMemento<Address, 
     public static Address Create(string street, string city, string postalCode)
         => new(street, city, postalCode);
 
-    protected override void SnapshotInternal(AddressMemento memento)
+    protected override void SnapshotCore(IAddressMemento memento)
     {
         memento.Street = Street;
         memento.City = City;
         memento.PostalCode = PostalCode;
     }
 
-    protected override void RestoreInternal(AddressMemento memento)
+    protected override void RestoreCore(IAddressMemento memento)
     {
         Street = memento.Street;
         City = memento.City;
         PostalCode = memento.PostalCode;
     }
 
-    // Required: C# static abstract interface dispatch limitation
-    static Address IMemento<Address, AddressMemento>.Restore(AddressMemento memento)
-        => ValueObject<Address, AddressMemento>.Restore(memento);
+    protected override IReadOnlyCollection<IError> Validate()
+    {
+        // Return errors if state is invalid, empty collection if valid
+        return [];
+    }
 }
 ```
 
@@ -164,7 +166,7 @@ src/Yaf.Domain/
 ├── ValueObject{TSelf,TMemento}.cs              # Variant 2: memento-capable (Yaf.Domain)
 └── Interfaces/
     ├── IMemento.cs                             # Core memento interface (Yaf.Domain.Interfaces)
-    └── IHydrateable.cs                         # Optional hydration interface (Yaf.Domain.Interfaces)
+    └── IHydratable.cs                         # Optional hydration interface (Yaf.Domain.Interfaces)
 
 tests/Yaf.Domain.Tests/
 └── ValueObjectTests.cs                         # Tests for both variants
@@ -175,8 +177,8 @@ tests/Yaf.Domain.Tests/
 - [x] `ValueObject` marker record exists, is abstract, in namespace `Yaf.Domain`
 - [x] Consumer can inherit: `record Foo(int X) : ValueObject` and get structural equality
 - [x] `IMemento<TSelf, TMemento>` interface exists in `Yaf.Domain.Interfaces` with `Snapshot()` and `static abstract Restore()`
-- [x] `IHydrateable<TMemento>` interface exists in `Yaf.Domain.Interfaces` with `Hydrate()` (not implemented by value objects)
-- [x] `ValueObject<TSelf, TMemento>` wires the marker to `IMemento` (not `IHydrateable`)
+- [x] `IHydratable<TMemento>` interface exists in `Yaf.Domain.Interfaces` with `Hydrate()` (not implemented by value objects)
+- [x] `ValueObject<TSelf, TMemento>` wires the marker to `IMemento` (not `IHydratable`)
 - [x] A concrete test value object demonstrates both variants
 - [x] Memento round-trip test: create → snapshot → restore → assert equality
 - [x] Tests verify record equality semantics (equal by value, not reference)
@@ -200,7 +202,7 @@ tests/Yaf.Domain.Tests/
 | Test | Verifies |
 |------|----------|
 | `MementoValueObject_Snapshot_PopulatesMemento` | Snapshot populates provided memento correctly |
-| `MementoValueObject_DoesNotImplementIHydrateable` | Value objects don't implement IHydrateable |
+| `MementoValueObject_DoesNotImplementIHydratable` | Value objects don't implement IHydratable |
 | `MementoValueObject_Restore_CreatesEquivalentObject` | Static Restore round-trips correctly |
 | `MementoValueObject_SnapshotThenRestore_RoundTrips` | Full round-trip: create → snapshot → restore → equals original |
 | `MementoValueObject_Restore_CanBeCalledGenerically` | `TSelf.Restore(memento)` works in generic context |

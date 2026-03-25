@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="Yaf.Domain/Yaf.Domain.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="../tests/Yaf.Domain.Tests/Yaf.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

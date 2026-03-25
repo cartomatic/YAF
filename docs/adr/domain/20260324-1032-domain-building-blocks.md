@@ -87,7 +87,7 @@ All options above as a cohesive set. The building blocks work together: `Entity<
 | Type | Purpose | Equality | Construction |
 |------|---------|----------|-------------|
 | **`Entity<TId>`** | Base for all entities. Carries typed identity. | By ID | Private constructor, static factory or builder |
-| **`AggregateRoot<TId>`** | Entity that is a consistency boundary. Owns domain event collection. Carries optimistic concurrency token. | By ID | Private constructor, static factory or builder |
+| **`AggregateRoot<TId>`** | Entity that is a consistency boundary. Owns domain event collection. | By ID | Private constructor, static factory or builder |
 | **`ValueObject` (record)** | Immutable value. No identity. | By value (record equality) | Constructor or static factory |
 | **`TypedId<T>`** | Strongly-typed ID wrapper. Record struct. | By value | Implicit/explicit conversion from `T` |
 | **`Enumeration<TEnum>`** | Smart enum — Id + Name + behavior. | By Id | Static instances (sealed, predefined set) |
@@ -104,8 +104,8 @@ All options above as a cohesive set. The building blocks work together: `Entity<
 - Extends `Entity<TId>`
 - Owns a `IReadOnlyCollection<IDomainEvent>` for domain event accumulation
 - Methods to add/clear events (`AddDomainEvent`, `ClearDomainEvents`)
-- Carries an optimistic concurrency token (version/rowversion)
 - Serves as the repository boundary — `IRepository<T> where T : AggregateRoot<TId>`
+- **Does not carry a concurrency token itself** — optimistic concurrency is opt-in via `IHasVersionInfo` on the memento (see [Cross-Cutting Infrastructure ADR](../infrastructure/20260324-1249-cross-cutting-infrastructure.md))
 
 ### ValueObject
 

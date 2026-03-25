@@ -37,39 +37,51 @@ Yaf.Infrastructure provides implementations for several cross-cutting concerns t
 | Transparent Data Encryption (TDE) at database level | Encrypts entire database. No column-level granularity. Doesn't protect against application-level data access. |
 | Manual encryption in domain | Domain should not know about encryption. Pollutes business logic with infrastructure concerns. |
 
-### Versioning
+### Optimistic Concurrency
 
 | Option | Assessment |
 |--------|------------|
-| **`IVersionable` marker + automatic memento snapshots** | **Selected.** Infrastructure stores a memento snapshot (plus version number, who, when) on each save. Previous states are queryable by version or timestamp. Natural fit with the memento pattern. |
+| **`IHasVersionInfo` interface on mementos + automatic EF Core concurrency token** | **Selected.** Interface enforces a `Version` property (Guid). When applied to a memento, infrastructure auto-configures it as a concurrency token. Can also be applied to domain objects (e.g., aggregate roots) for domain-level version access, but the EF Core configuration only activates on mementos. |
+| Concurrency token baked into `AggregateRoot<TId>` | Forces concurrency on all aggregates. Some aggregates (read-heavy, low contention) don't need it. |
+| SQL Server `rowversion` / PostgreSQL `xmin` | Database-specific. Not portable. Opaque binary values are harder to reason about than application-managed Guid tokens. |
+
+### Versioning (Time Travel) & Graveyard
+
+| Option | Assessment |
+|--------|------------|
+| **`IVersionable : IHasVersionInfo` on mementos + automatic snapshots + graveyard** | **Selected.** `IVersionable` extends `IHasVersionInfo` — any versionable memento also gets optimistic concurrency. Infrastructure stores a memento snapshot (plus version number, who, when) on each UoW commit. On delete, the object is moved to a central graveyard table. Previous states are queryable by version or timestamp. Natural fit with the memento pattern. |
 | Event sourcing | Full event replay capability but fundamentally different architecture. Overkill for snapshot-based time travel. Can be added as a separate pattern later. |
 | Manual versioning | Consumers implement their own snapshot storage. Repetitive and inconsistent. |
+| Separate opt-in for graveyard vs versioning | Additional interface complexity for little benefit — if you care about version history, you care about deletion history too. |
 
 ### Deleted Object Handling
 
 | Option | Assessment |
 |--------|------------|
-| **Central graveyard table** | **Selected.** Deleted objects are serialized (via memento) into a `DeletedObjects` table with metadata (type, ID, who, when). Main tables stay clean. Data is recoverable. |
+| **Central graveyard table, activated by `IVersionable`** | **Selected.** Deleted objects with `IVersionable` mementos are serialized into a `DeletedObjects` table with metadata (type, ID, who, when). Main tables stay clean. Data is recoverable. Non-versionable aggregates are hard-deleted. |
 | Per-table soft delete (`IsDeleted` flag) | Pollutes every query with `WHERE IsDeleted = false`. Forgotten filters leak deleted data. Clutters main tables. |
-| Hard delete | Data is gone. No recovery, no audit trail for deletions. |
+| Hard delete for all | Data is gone. No recovery, no audit trail for deletions. |
 | Per-table archive table | One archive table per entity table. Schema duplication, migration overhead. |
+| Graveyard for all aggregates | Forces storage overhead on aggregates that don't need recoverability. |
 
 ## Recommendation
 
-All four concerns as opt-in, memento-based infrastructure features: accountability + timestamping auto-populated on save, encryption transparent on memento properties, versioning via automatic snapshots, and graveyard for deletions.
+All five concerns as opt-in, memento-based infrastructure features: optimistic concurrency via `IHasVersionInfo`, accountability + timestamping auto-populated on save, encryption transparent on memento properties, versioning + graveyard via `IVersionable` (which extends `IHasVersionInfo`).
 
 ## Consequences
 
 **Positive:**
 - All concerns are opt-in — consumers activate only what they need via interfaces/markers
+- Two-tier versioning: `IHasVersionInfo` for just concurrency, `IVersionable` for full audit trail (concurrency + snapshots + graveyard)
 - Memento as the hook point means domain objects are completely unaware of these concerns
 - Auto-population eliminates manual audit field maintenance
-- Graveyard keeps main tables clean while preserving deleted data
+- Graveyard keeps main tables clean while preserving deleted data — only for `IVersionable` aggregates
 - Versioning gets time travel "for free" from the memento pattern — each save already produces a snapshot
 
 **Negative:**
 - Graveyard table can grow large in high-churn systems (mitigated: archival/cleanup policies are a consumer concern)
 - Versioning snapshots increase storage per save (mitigated: opt-in per aggregate, only for entities that need it)
+- Non-versionable aggregates are hard-deleted — no recoverability (by design: if you need recoverability, opt into `IVersionable`)
 - Encryption adds latency to save/load (mitigated: only on marked properties, typically a small subset)
 - Consumers must implement `IEncryptionProvider` — YAF provides the hook, not the key management
 
@@ -120,13 +132,27 @@ Load: Database → EF Core → decrypt [Encryptable] properties → Hydrate(meme
 - **With re-encryption migration:** A batch process reads, decrypts (old key), re-encrypts (new key), and saves all affected records. Old keys can be retired after migration completes.
 - **YAF's role:** YAF provides the encryption/decryption hook in the memento pipeline. Key management, rotation scheduling, and re-encryption migrations are the consumer's responsibility. The `IEncryptionProvider` contract should support a key identifier so encrypted values can be tagged with the key that encrypted them.
 
-### Versioning (Time Travel)
+### Optimistic Concurrency (`IHasVersionInfo`)
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `IVersionable` | Domain | Marker interface. Opt-in per aggregate. |
+| `IHasVersionInfo` | Domain | Interface enforcing a `Version` property (Guid). Applicable to domain objects and/or mementos. |
+| Auto-configuration | Infrastructure | When a memento implements `IHasVersionInfo`, `YafDbContext` auto-configures the `Version` property as an EF Core concurrency token. |
+
+- `Version` is a `Guid` — application-managed, portable across databases
+- On save: infrastructure generates a new `Guid` for `Version`
+- EF Core includes `Version` in the `WHERE` clause of `UPDATE` statements
+- On conflict: `DbUpdateConcurrencyException` is thrown
+- Can be applied to domain objects (e.g., aggregate root) for domain-level version access — but the EF Core concurrency configuration only activates when present on the memento
+
+### Versioning (Time Travel) & Graveyard (`IVersionable`)
+
+| Concept | Layer | Description |
+|---------|-------|-------------|
+| `IVersionable : IHasVersionInfo` | Domain | Extends `IHasVersionInfo`. Applied to mementos. Opt-in per aggregate. |
 | Version snapshot storage | Infrastructure | On Unit of Work commit: store final memento state + version number + who + when |
 | Time-travel queries | Infrastructure | Retrieve any previous state by version number or timestamp |
+| Graveyard on delete | Infrastructure | When a `IVersionable` aggregate is deleted, its memento is serialized to the graveyard table |
 
 **Snapshot record:**
 
@@ -149,14 +175,6 @@ Load: Database → EF Core → decrypt [Encryptable] properties → Hydrate(meme
   - The raw serialized JSON is also retrievable for manual inspection and visualization — useful when the domain model has evolved significantly and tolerant deserialization cannot fully reconstruct the state.
 - **Schema evolution:** Snapshots are stored as JSON. The **deserialization layer** handles schema drift — not the domain's `Hydrate` method, which always operates on a strongly typed, current-shape memento (see State Management ADR). The raw JSON serves as the authoritative record of what the state was at that point in time.
 
-### Deleted Object Graveyard
-
-| Concept | Layer | Description |
-|---------|-------|-------------|
-| Graveyard table | Infrastructure | Central `DeletedObjects` table for all deleted aggregates |
-| Delete operation | Infrastructure | Repository `Remove()` serializes the memento and moves it to the graveyard |
-| Recovery | Infrastructure | Restore from graveyard by deserializing the memento and re-persisting |
-
 **Graveyard record:**
 
 | Field | Description |
@@ -168,6 +186,7 @@ Load: Database → EF Core → decrypt [Encryptable] properties → Hydrate(meme
 | `DeletedAtUtc` | When deleted |
 | `TenantId` | Tenant Guid (if tenant-scoped) |
 
+- **Only `IVersionable` aggregates** get graveyard treatment — non-versionable aggregates are hard-deleted
 - Main entity is removed from its table — no soft-delete flags, no query filter pollution
 - Graveyard is append-only from the application's perspective
 - Recovery is an explicit operation (restore from graveyard → re-persist)
@@ -177,11 +196,11 @@ Load: Database → EF Core → decrypt [Encryptable] properties → Hydrate(meme
 
 | Concern | Activated By | Applies To |
 |---------|-------------|------------|
+| Optimistic concurrency | Implement `IHasVersionInfo` on memento | `Version` (Guid) auto-configured as EF Core concurrency token |
 | Accountability | Implement `IAccountable<TActorId>` on domain object | Memento gets `CreatedBy`, `ModifiedBy` auto-populated |
 | Timestamping | Implement `ITimestamped` on domain object | Memento gets `CreatedAtUtc`, `ModifiedAtUtc` auto-populated |
 | Encryption | Mark memento properties with `[Encryptable]` | Marked properties encrypted/decrypted during save/load |
-| Versioning | Implement `IVersionable` on domain object | Memento snapshot stored on each save |
-| Graveyard | Default for all aggregates via `IRepository<T>.Remove()` | Deleted aggregate moved to graveyard table |
+| Versioning + Graveyard | Implement `IVersionable` on memento | Memento snapshot stored on each save; deleted objects moved to graveyard |
 
 ## More Information
 

@@ -25,7 +25,7 @@ YAF enforces data consistency through three mechanisms: aggregate boundaries as 
 
 | Option | Assessment |
 |--------|------------|
-| **Optimistic concurrency via version token** | **Selected.** `AggregateRoot<TId>` carries a concurrency token. EF Core maps it to `[ConcurrencyCheck]` / `RowVersion`. On conflict, EF Core throws `DbUpdateConcurrencyException` — the application retries or reports the conflict. |
+| **Optimistic concurrency via `IHasVersionInfo`** | **Selected.** Mementos that implement `IHasVersionInfo` carry a `Version` property (Guid). EF Core auto-configures it as a concurrency token. On conflict, EF Core throws `DbUpdateConcurrencyException` — the application retries or reports the conflict. Opt-in per aggregate, not baked into `AggregateRoot`. |
 | Pessimistic locking (SELECT FOR UPDATE) | Blocks concurrent readers. Increases contention and deadlock risk. Appropriate only for specific high-contention scenarios, not as a default. |
 | Last-write-wins (no concurrency control) | Silently loses data. Unacceptable for business-critical aggregates. |
 
@@ -57,7 +57,7 @@ YAF enforces data consistency through three mechanisms: aggregate boundaries as 
 
 ## Recommendation
 
-Optimistic concurrency as the default, Unit of Work per command for transaction scope, same-transaction for same-context multi-aggregate operations, eventual consistency across bounded contexts. No distributed transactions.
+Optimistic concurrency opt-in via `IHasVersionInfo` on mementos, Unit of Work per command for transaction scope, same-transaction for same-context multi-aggregate operations, eventual consistency across bounded contexts. No distributed transactions.
 
 ## Consequences
 
@@ -80,25 +80,26 @@ Optimistic concurrency as the default, Unit of Work per command for transaction 
 
 | Scope | Consistency | Mechanism |
 |-------|------------|-----------|
-| **Within an aggregate** | Strong (ACID) | Single transaction, optimistic concurrency token |
+| **Within an aggregate** | Strong (ACID) | Single transaction, optimistic concurrency via `IHasVersionInfo` (opt-in) |
 | **Across aggregates, same bounded context** | Strong (ACID) | Same Unit of Work transaction (when modified in the same command) |
 | **Across bounded contexts** | Eventual | Integration events (future messaging module) |
 | **Across services** | Eventual | Integration events over message broker (future) |
 
 ### Optimistic Concurrency
 
-`AggregateRoot<TId>` carries a concurrency token:
+Mementos that implement `IHasVersionInfo` carry a `Version` property (Guid), auto-configured as an EF Core concurrency token:
 
-- **EF Core mapping:** the memento's concurrency property is configured as `[ConcurrencyCheck]` or SQL Server `rowversion` / PostgreSQL `xmin`
-- **On save:** EF Core includes the token in the `WHERE` clause of the `UPDATE` statement
+- **Opt-in:** not baked into `AggregateRoot<TId>` — only mementos implementing `IHasVersionInfo` get concurrency. `IVersionable` extends `IHasVersionInfo`, so versionable aggregates get it automatically.
+- **EF Core mapping:** infrastructure auto-configures the `Version` property as a concurrency token (application-managed Guid, portable across databases)
+- **On save:** infrastructure generates a new Guid for `Version`. EF Core includes the old `Version` in the `WHERE` clause of the `UPDATE` statement.
 - **On conflict:** `DbUpdateConcurrencyException` is thrown
 - **Handling:** the application layer catches the exception and either retries the operation (reload aggregate, re-apply logic, save again) or returns a conflict error to the caller
 
 ```
 Conflict flow:
-  1. User A loads Order (version 1)
-  2. User B loads Order (version 1)
-  3. User A saves Order → success (version 2)
+  1. User A loads Order (version: abc-...)
+  2. User B loads Order (version: abc-...)
+  3. User A saves Order → success (version: def-...)
   4. User B saves Order → DbUpdateConcurrencyException (version mismatch)
   5. User B: retry or report conflict
 ```
@@ -240,7 +241,7 @@ YAF does not prescribe a single retry strategy. The application layer decides:
 
 ## More Information
 
-- [ADR: Domain Building Blocks](../domain/20260324-1032-domain-building-blocks.md) — AggregateRoot carries concurrency token
+- [ADR: Domain Building Blocks](../domain/20260324-1032-domain-building-blocks.md) — AggregateRoot as consistency boundary
+- [ADR: Cross-Cutting Infrastructure](20260324-1249-cross-cutting-infrastructure.md) — `IHasVersionInfo` and `IVersionable` interfaces, versioning snapshots, graveyard
 - [ADR: Persistence Strategy](20260324-1229-persistence-strategy.md) — IUnitOfWork, SaveChangesAsync flow
 - [ADR: Domain Events](../domain/20260324-1113-domain-events-and-integration-events.md) — dispatch after commit, integration events for cross-context
-- [ADR: Cross-Cutting Infrastructure](20260324-1249-cross-cutting-infrastructure.md) — versioning snapshots on save

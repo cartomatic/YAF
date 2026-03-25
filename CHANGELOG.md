@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-03-25
+
+### Added
+
+- Solution scaffolding: `YAF.slnx` (slnx format, in `src/`), `Yaf.Domain` class library (net10.0), `Yaf.Domain.Tests` xUnit project
+- `ValueObject` — marker abstract record for simple value semantics (structural equality via C# records)
+- `ValueObject<TSelf, TMemento>` — memento-capable variant with `SnapshotCore`/`RestoreCore`/`Validate` template methods, implements `IMemento<TSelf, TMemento>` directly
+- `IMemento<TSelf, TMemento>` — memento contract with `Snapshot` and `static abstract Restore` (CRTP pattern)
+- `IHydratable<TMemento>` — separate hydration interface for mutable entities
+- `IError` — domain error interface (code + message)
+- `ValidationException` — thrown when memento restoration produces invalid state
+- `.editorconfig` — Microsoft C# conventions baseline, CS1591 enforcement for XML documentation on public API
+- `.gitignore` — standard .NET/VS + NCrunch + Claude Code local settings
+- Solution documentation: CRTP + static abstract + memento pattern investigation trail
+- Session diary documenting the iterative design process
+
+### Changed
+
+- ADR: State Management — Memento Pattern updated to reflect `IMemento<TSelf, TMemento>` + `IHydratable<TMemento>` split
+
 ## 2026-03-24
 
 ### Added

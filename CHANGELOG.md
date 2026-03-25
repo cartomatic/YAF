@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- GitHub Actions PR validation workflow (`.github/workflows/pr.yml`) with build, test, coverage, format check, and Conventional Commits PR title validation
+- `global.json` pinning .NET 10 SDK (`10.0.200`, `rollForward: latestPatch`)
+- Root `Directory.Build.props` centralizing `TreatWarningsAsErrors`, `Nullable`, `ImplicitUsings` across all projects
+- `src/Directory.Build.props` enabling `GenerateDocumentationFile` for all source projects
+- `.gitattributes` enforcing LF line endings to match `.editorconfig`
+- Code coverage collection via coverlet with ReportGenerator HTML/text summary reports uploaded as build artifacts
+
+### Changed
+
+- `Yaf.Domain.csproj` — removed `ImplicitUsings`, `Nullable`, `GenerateDocumentationFile` (now inherited from `Directory.Build.props`)
+- `Yaf.Domain.Tests.csproj` — removed `ImplicitUsings`, `Nullable` (now inherited from `Directory.Build.props`)
+
+### Added
+
 - Solution scaffolding: `YAF.slnx` (slnx format, in `src/`), `Yaf.Domain` class library (net10.0), `Yaf.Domain.Tests` xUnit project
 - `ValueObject` — marker abstract record for simple value semantics (structural equality via C# records)
 - `ValueObject<TSelf, TMemento>` — memento-capable variant with `SnapshotCore`/`RestoreCore`/`Validate` template methods, implements `IMemento<TSelf, TMemento>` directly

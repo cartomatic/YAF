@@ -1,0 +1,9 @@
+# Enforce LF line endings in the repository (matches .editorconfig end_of_line = lf)
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.gif binary
+*.pdf binary

@@ -95,14 +95,32 @@ Option B ties the domain to EF Core internals. Option C is the memento pattern w
 
 ### Contract
 
+Two interfaces — split to accommodate both immutable value objects and mutable entities:
+
 ```
-// Yaf.Domain
-public interface IMemento<TMemento> where TMemento : class
+// Yaf.Domain.Interfaces — core memento contract (all persistable domain objects)
+public interface IMemento<TSelf, TMemento>
+    where TSelf : IMemento<TSelf, TMemento>
+    where TMemento : class
 {
     void Snapshot(TMemento memento);
+    static abstract TSelf Restore(TMemento memento);
+}
+
+// Yaf.Domain.Interfaces — optional hydration (mutable entities only)
+public interface IHydratable<TMemento>
+    where TMemento : class
+{
     void Hydrate(TMemento memento);
 }
 ```
+
+**Why two interfaces?**
+- Value objects are immutable records — `Hydrate` (mutate self) is nonsensical. They implement only `IMemento<TSelf, TMemento>`.
+- Entities are mutable — they implement both `IMemento` and `IHydratable`. `Hydrate` reloads state into an existing tracked instance (e.g., EF Core change tracker). `Restore` creates a new instance for initial materialization.
+- Infrastructure can check `is IHydratable<TMemento>` to decide between hydrate-in-place vs restore-as-new.
+
+**C# limitation:** Abstract base types (e.g., `ValueObject<TSelf, TMemento>`) cannot declare `: IMemento<TSelf, TMemento>` because C# does not allow abstract classes to defer `static abstract` interface members to derived types. Concrete types must explicitly implement the interface.
 
 ### Flow
 
@@ -115,20 +133,29 @@ Repository creates/obtains memento instance
         → EF Core persists the memento
 ```
 
-**Load:**
+**Load (new instance — value objects and entities):**
 ```
 EF Core loads memento from database
   → infrastructure decrypts [Encryptable] properties
-    → domain object hydrates via Hydrate(memento)
+    → new domain object created via TSelf.Restore(memento)
       → domain reconstructs rich types (typed IDs, value objects, enumerations)
+```
+
+**Load (existing instance — entities with IHydratable only):**
+```
+EF Core loads memento from database
+  → infrastructure decrypts [Encryptable] properties
+    → existing domain object reloaded via Hydrate(memento)
+      → domain updates internal state from memento
 ```
 
 ### Ownership
 
 | Concern | Owner |
 |---------|-------|
-| `IMemento<TMemento>` interface | Yaf.Domain |
-| `Snapshot` / `Hydrate` methods | Domain objects (consumer-defined) |
+| `IMemento<TSelf, TMemento>` interface | Yaf.Domain.Interfaces |
+| `IHydratable<TMemento>` interface | Yaf.Domain.Interfaces |
+| `Snapshot` / `Restore` / `Hydrate` methods | Domain objects (consumer-defined) |
 | Concrete memento types (DTOs) | Yaf.Infrastructure (consumer-defined) |
 | EF Core entity configuration for mementos | Yaf.Infrastructure (consumer-defined) |
 | Encryption of `[Encryptable]` properties | Yaf.Infrastructure |
@@ -161,7 +188,7 @@ Domain models evolve — properties are added, removed, or renamed. Since mement
 
 ### Testing
 
-- **Round-trip tests** — create a domain object, snapshot to memento, hydrate from memento, verify state equality. These tests are unit tests (no database needed) and should exist for every persisted aggregate.
+- **Round-trip tests** — create a domain object, snapshot to memento, restore from memento, verify state equality. These tests are unit tests (no database needed) and should exist for every persisted aggregate and value object.
 - **Integration tests** — persist via repository (memento → EF Core → database → EF Core → memento → domain), verify full round-trip including any EF Core conventions, query filters, and encryption.
 - **Deserialization evolution tests** — when memento shape changes, test that the Infrastructure JSON deserialization handles old memento JSON gracefully (missing properties get defaults, removed properties are ignored). These are infrastructure tests, not domain tests.
 

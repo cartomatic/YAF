@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Root `Directory.Build.props` centralizing `TreatWarningsAsErrors`, `Nullable`, `ImplicitUsings` across all projects
 - `src/Directory.Build.props` enabling `GenerateDocumentationFile` for all source projects
 - `.gitattributes` enforcing LF line endings to match `.editorconfig`
+- GitVersion integration for Conventional Commits-driven semantic versioning (`GitVersion.yml`, `.config/dotnet-tools.json`)
+- Version computation and embedding in PR workflow via `gittools/actions` with `/p:Version=` pass-through
+- Version displayed in GitHub Actions step summary on every PR build
 - Code coverage collection via coverlet with ReportGenerator HTML/text summary reports uploaded as build artifacts and posted as PR comment
 
 ### Changed

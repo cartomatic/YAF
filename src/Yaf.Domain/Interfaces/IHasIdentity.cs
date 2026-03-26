@@ -38,6 +38,8 @@ public interface IHasIdentity<T> : IHasIdentity
     object IHasIdentity.BoxedId
     {
         get => Id!;
-        set => Id = (T)value;
+        set => Id = value is T typed
+            ? typed
+            : throw new ArgumentException($"Expected {typeof(T).Name}, got {value?.GetType().Name ?? "null"}.", nameof(value));
     }
 }

@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Yaf.Domain.Interfaces;
 
 namespace Yaf.Domain;
@@ -18,7 +17,7 @@ namespace Yaf.Domain;
 /// <para>
 /// Properties must use <c>{ get; private set; }</c> — positional parameters
 /// and <c>init</c> accessors are not compatible with memento restoration via
-/// <see cref="RuntimeHelpers.GetUninitializedObject"/>.
+/// <see cref="System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject"/>.
 /// </para>
 /// <para>
 /// Both <see cref="IMemento{TSelf,TMemento}.Restore"/> and <see cref="IHydratable{TMemento}.Hydrate"/>
@@ -36,9 +35,6 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     where TSelf : AggregateRoot<TId, TSelf, TMemento>
     where TMemento : class
 {
-    private static bool IsIdentityCompatible(IHasIdentity hasIdentity) =>
-        hasIdentity.IdentityType == TId.IdentityType;
-
     /// <summary>
     /// Initializes a new instance of the aggregate root with the specified identifier.
     /// </summary>
@@ -58,12 +54,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     public void Snapshot(TMemento memento)
     {
         ArgumentNullException.ThrowIfNull(memento);
-
-        if (memento is IHasIdentity hasIdentity && IsIdentityCompatible(hasIdentity))
-        {
-            hasIdentity.BoxedId = Id.BoxedValue;
-        }
-
+        MementoHelper<TId, TSelf, TMemento>.WriteIdentity(memento, Id);
         SnapshotCore(memento);
     }
 
@@ -71,21 +62,16 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     public static TSelf Restore(TMemento memento)
     {
         ArgumentNullException.ThrowIfNull(memento);
-        var instance = (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
+        var instance = MementoHelper<TId, TSelf, TMemento>.CreateUninitializedInstance();
 
-        if (memento is IHasIdentity hasIdentity && IsIdentityCompatible(hasIdentity))
+        var (id, success) = MementoHelper<TId, TSelf, TMemento>.ReadIdentity(memento);
+        if (success)
         {
-            instance.Id = (TId)Activator.CreateInstance(typeof(TId), hasIdentity.BoxedId)!;
+            instance.Id = id!;
         }
 
         instance.RestoreCore(memento);
-
-        var errors = instance.Validate();
-        if (errors.Count > 0)
-        {
-            throw new ValidationException(typeof(TSelf), errors);
-        }
-
+        MementoHelper<TId, TSelf, TMemento>.ThrowIfInvalid(instance.Validate());
         return instance;
     }
 
@@ -94,18 +80,14 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     {
         ArgumentNullException.ThrowIfNull(memento);
 
-        if (memento is IHasIdentity hasIdentity && IsIdentityCompatible(hasIdentity))
+        var (id, success) = MementoHelper<TId, TSelf, TMemento>.ReadIdentity(memento);
+        if (success)
         {
-            Id = (TId)Activator.CreateInstance(typeof(TId), hasIdentity.BoxedId)!;
+            Id = id!;
         }
 
         HydrateCore(memento);
-
-        var errors = Validate();
-        if (errors.Count > 0)
-        {
-            throw new ValidationException(typeof(TSelf), errors);
-        }
+        MementoHelper<TId, TSelf, TMemento>.ThrowIfInvalid(Validate());
     }
 
     /// <summary>

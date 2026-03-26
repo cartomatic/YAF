@@ -7,7 +7,7 @@ namespace Yaf.Domain;
 /// <summary>
 /// Base class for entities that support memento-based persistence.
 /// Concrete types must override <see cref="SnapshotCore"/>, <see cref="RestoreCore"/>,
-/// <see cref="HydrateCore"/>, and <see cref="Validate"/>.
+/// <see cref="HydrateCore"/>, and <see cref="GetValidationErrors"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -114,5 +114,5 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     /// Return an empty collection if the state is valid.
     /// </summary>
     /// <returns>A collection of validation errors, empty if valid.</returns>
-    public abstract IReadOnlyCollection<IError> Validate();
+    public abstract IReadOnlyCollection<IError> GetValidationErrors();
 }

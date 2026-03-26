@@ -8,15 +8,18 @@ namespace Yaf.Domain.Extensions;
 public static class ValidatableExtensions
 {
     /// <summary>
+    /// Returns <c>true</c> if the domain object's state is valid (no validation errors).
+    /// </summary>
+    public static bool IsValid(this IValidatable validatable) =>
+        validatable.GetValidationErrors().Count == 0;
+
+    /// <summary>
     /// Validates the domain object and throws <see cref="ValidationException"/> if the state is invalid.
     /// </summary>
-    /// <param name="validatable">The domain object to validate.</param>
     /// <exception cref="ValidationException">Thrown when validation produces one or more errors.</exception>
     public static void ThrowIfInvalid(this IValidatable validatable)
     {
-        ArgumentNullException.ThrowIfNull(validatable);
-
-        var errors = validatable.Validate();
+        var errors = validatable.GetValidationErrors();
         if (errors.Count > 0)
         {
             throw new ValidationException(validatable.GetType(), errors);

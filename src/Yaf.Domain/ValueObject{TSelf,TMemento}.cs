@@ -7,7 +7,7 @@ namespace Yaf.Domain;
 /// <summary>
 /// Base record for value objects that support memento-based persistence.
 /// Concrete types must override <see cref="SnapshotCore"/>, <see cref="RestoreCore"/>,
-/// and <see cref="Validate"/>.
+/// and <see cref="GetValidationErrors"/>.
 /// </summary>
 /// <remarks>
 /// Properties must use <c>{ get; private set; }</c> — positional record parameters
@@ -53,5 +53,5 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSel
     /// Return an empty collection if the state is valid.
     /// </summary>
     /// <returns>A collection of validation errors, empty if valid.</returns>
-    public abstract IReadOnlyCollection<IError> Validate();
+    public abstract IReadOnlyCollection<IError> GetValidationErrors();
 }

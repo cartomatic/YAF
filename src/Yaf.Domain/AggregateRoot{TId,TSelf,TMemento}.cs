@@ -7,7 +7,7 @@ namespace Yaf.Domain;
 /// <summary>
 /// Base class for aggregate roots that support memento-based persistence.
 /// Concrete types must override <see cref="SnapshotCore"/>, <see cref="RestoreCore"/>,
-/// <see cref="HydrateCore"/>, and <see cref="Validate"/>.
+/// <see cref="HydrateCore"/>, and <see cref="GetValidationErrors"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -117,5 +117,5 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     /// Return an empty collection if the state is valid.
     /// </summary>
     /// <returns>A collection of validation errors, empty if valid.</returns>
-    public abstract IReadOnlyCollection<IError> Validate();
+    public abstract IReadOnlyCollection<IError> GetValidationErrors();
 }

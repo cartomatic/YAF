@@ -70,7 +70,7 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
         }
 
         instance.RestoreCore(memento);
-        ((IValidatable)instance).ThrowIfInvalid();
+        instance.ThrowIfInvalid();
         return instance;
     }
 
@@ -86,7 +86,7 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
         }
 
         HydrateCore(memento);
-        ((IValidatable)this).ThrowIfInvalid();
+        this.ThrowIfInvalid();
     }
 
     /// <summary>

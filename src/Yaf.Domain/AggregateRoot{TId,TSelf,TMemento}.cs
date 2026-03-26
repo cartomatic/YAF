@@ -73,7 +73,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
         }
 
         instance.RestoreCore(memento);
-        ((IValidatable)instance).ThrowIfInvalid();
+        instance.ThrowIfInvalid();
         return instance;
     }
 
@@ -89,7 +89,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
         }
 
         HydrateCore(memento);
-        ((IValidatable)this).ThrowIfInvalid();
+        this.ThrowIfInvalid();
     }
 
     /// <summary>

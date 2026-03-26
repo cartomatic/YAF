@@ -32,7 +32,7 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSel
         ArgumentNullException.ThrowIfNull(memento);
         var instance = (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
         instance.RestoreCore(memento);
-        ((IValidatable)instance).ThrowIfInvalid();
+        instance.ThrowIfInvalid();
         return instance;
     }
 

@@ -155,7 +155,7 @@ public class AggregateRootMementoTests
             Total = memento.Total;
         }
 
-        protected override IReadOnlyCollection<IError> Validate()
+        protected override IReadOnlyCollection<IError> ValidateState()
         {
             var errors = new List<IError>();
             if (string.IsNullOrWhiteSpace(Customer))

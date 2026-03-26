@@ -13,7 +13,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     where TSelf : Entity<TId>
     where TMemento : class
 {
-    private static readonly Func<object, TId>? _idFactory = Build_idFactory();
+    private static readonly Func<object, TId>? _idFactory = BuildIdFactory();
 
     /// <summary>
     /// Writes the entity's identity to the memento if types are compatible.
@@ -49,18 +49,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     internal static TSelf CreateUninitializedInstance() =>
         (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
 
-    /// <summary>
-    /// Throws <see cref="ValidationException"/> if the error collection is non-empty.
-    /// </summary>
-    internal static void ThrowIfInvalid(IReadOnlyCollection<IError> errors)
-    {
-        if (errors.Count > 0)
-        {
-            throw new ValidationException(typeof(TSelf), errors);
-        }
-    }
-
-    private static Func<object, TId>? Build_idFactory()
+    private static Func<object, TId>? BuildIdFactory()
     {
         var backingType = TId.IdentityType;
         var constructor = typeof(TId).GetConstructor([backingType]);

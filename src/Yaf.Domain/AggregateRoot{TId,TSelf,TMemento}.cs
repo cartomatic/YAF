@@ -1,3 +1,4 @@
+using Yaf.Domain.Extensions;
 using Yaf.Domain.Helpers;
 using Yaf.Domain.Interfaces;
 
@@ -6,7 +7,7 @@ namespace Yaf.Domain;
 /// <summary>
 /// Base class for aggregate roots that support memento-based persistence.
 /// Concrete types must override <see cref="SnapshotCore"/>, <see cref="RestoreCore"/>,
-/// <see cref="HydrateCore"/>, and <see cref="Validate"/>.
+/// <see cref="HydrateCore"/>, and <see cref="ValidateState"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,7 +23,7 @@ namespace Yaf.Domain;
 /// </para>
 /// <para>
 /// Both <see cref="IMemento{TSelf,TMemento}.Restore"/> and <see cref="IHydratable{TMemento}.Hydrate"/>
-/// call <see cref="Validate"/> and throw <see cref="ValidationException"/> on invalid state.
+/// validate state via <see cref="IValidatable"/> and throw <see cref="ValidationException"/> on invalid state.
 /// </para>
 /// <para>
 /// The domain events collection survives memento restoration via lazy initialization (<c>??=</c>).
@@ -31,7 +32,7 @@ namespace Yaf.Domain;
 /// <typeparam name="TId">The strongly-typed identifier type.</typeparam>
 /// <typeparam name="TSelf">The concrete aggregate root type (CRTP pattern).</typeparam>
 /// <typeparam name="TMemento">The memento contract. Should implement <see cref="IHasIdentity{T}"/> for automatic identity handling.</typeparam>
-public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
+public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>, IValidatable
     where TId : ITypedId
     where TSelf : AggregateRoot<TId, TSelf, TMemento>
     where TMemento : class
@@ -72,7 +73,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
         }
 
         instance.RestoreCore(memento);
-        MementoHelper<TId, TSelf, TMemento>.ThrowIfInvalid(instance.Validate());
+        ((IValidatable)instance).ThrowIfInvalid();
         return instance;
     }
 
@@ -88,8 +89,11 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
         }
 
         HydrateCore(memento);
-        MementoHelper<TId, TSelf, TMemento>.ThrowIfInvalid(Validate());
+        ((IValidatable)this).ThrowIfInvalid();
     }
+
+    /// <inheritdoc />
+    IReadOnlyCollection<IError> IValidatable.Validate() => ValidateState();
 
     /// <summary>
     /// Populates the provided memento with subclass-specific state (not the Id).
@@ -116,5 +120,5 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     /// Return an empty collection if the state is valid.
     /// </summary>
     /// <returns>A collection of validation errors, empty if valid.</returns>
-    protected abstract IReadOnlyCollection<IError> Validate();
+    protected abstract IReadOnlyCollection<IError> ValidateState();
 }

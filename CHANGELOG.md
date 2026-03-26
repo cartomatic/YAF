@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-03-26
+
+### Added
+
+- `ITypedId` / `ITypedId<T>` — strongly-typed identifier interfaces with `IEquatable<T>` constraint on backing type
+- `TypedId<T>` — abstract record class for consumer-defined typed IDs (e.g., `record OrderId(Guid Value) : TypedId<Guid>(Value)`)
+- `IDomainEvent` — marker interface for in-process domain events (context envelope attached by infrastructure at dispatch time)
+- `Entity<TId>` — base class with identity-based equality, runtime type check, `IEquatable` support, and `==`/`!=` operators
+- `Entity<TId, TSelf, TMemento>` — memento-capable entity with `Snapshot`/`Restore`/`Hydrate` (base handles Id, `*Core` for subclass state), validates on both restore and hydrate
+- `AggregateRoot<TId>` — entity with domain event collection (`AddDomainEvent` protected, `ClearDomainEvents` public, lazy `??=` initialization)
+- `AggregateRoot<TId, TSelf, TMemento>` — memento-capable aggregate root with same template pattern as Entity
+
+### Changed
+
+- ADR: Domain Building Blocks — TypedId changed from record struct to abstract record class with `ITypedId`/`ITypedId<T>` interface hierarchy; TId constraint changed to `ITypedId`; application-generated IDs mandated
+- ADR: State Management — Memento Pattern — corrected incorrect C# limitation claim about static abstract on abstract classes; added Hydrate validation requirement
+
 ## 2026-03-25
 
 ### Added

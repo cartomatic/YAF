@@ -60,8 +60,5 @@ public abstract class AggregateRoot<TId> : Entity<TId>
     /// <summary>
     /// Clears all accumulated domain events. Called by infrastructure after dispatch.
     /// </summary>
-    public void ClearDomainEvents()
-    {
-        _domainEvents?.Clear();
-    }
+    public void ClearDomainEvents() => _domainEvents?.Clear();
 }

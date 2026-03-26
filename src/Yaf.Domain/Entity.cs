@@ -57,30 +57,18 @@ public abstract class Entity<TId> : IEquatable<Entity<TId>>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return Equals(obj as Entity<TId>);
-    }
+    public override bool Equals(object? obj) => Equals(obj as Entity<TId>);
 
     /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(GetType(), Id);
-    }
+    public override int GetHashCode() => HashCode.Combine(GetType(), Id);
 
     /// <summary>
     /// Determines whether two entities are equal by identity.
     /// </summary>
-    public static bool operator ==(Entity<TId>? left, Entity<TId>? right)
-    {
-        return Equals(left, right);
-    }
+    public static bool operator ==(Entity<TId>? left, Entity<TId>? right) => Equals(left, right);
 
     /// <summary>
     /// Determines whether two entities are not equal by identity.
     /// </summary>
-    public static bool operator !=(Entity<TId>? left, Entity<TId>? right)
-    {
-        return !Equals(left, right);
-    }
+    public static bool operator !=(Entity<TId>? left, Entity<TId>? right) => !Equals(left, right);
 }

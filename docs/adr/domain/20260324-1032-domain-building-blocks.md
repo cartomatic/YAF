@@ -92,9 +92,16 @@ All options above as a cohesive set. The building blocks work together: `Entity<
 | **`TypedId<T>`** | Strongly-typed ID wrapper. Abstract record class with `ITypedId`/`ITypedId<T>` interfaces. | By value (record equality) | Constructor: `new OrderId(guid)` or `id.Value` for extraction |
 | **`Enumeration<TEnum>`** | Smart enum — Id + Name + behavior. | By Id | Static instances (sealed, predefined set) |
 
+### IHasIdentity\<T\>
+
+- `IHasIdentity<T> where T : IEquatable<T>` — interface enforcing a `T Id { get; set; }` property on mementos
+- Mementos for entities and aggregate roots must implement `IHasIdentity<T>` so that the base memento classes (`Entity<TId, T, TSelf, TMemento>`, `AggregateRoot<TId, T, TSelf, TMemento>`) can handle identity snapshot/restore/hydrate without abstract methods
+- Consumer usage: `interface IOrderMemento : IHasIdentity<Guid> { string Name { get; set; } }`
+
 ### Entity\<TId\>
 
-- Generic `TId` constrained to `ITypedId` — prevents raw primitives like `Entity<Guid>` while avoiding a second type parameter that `TypedId<T>` would require. Application-generated IDs (e.g., `Guid.NewGuid()` in factory methods) are the mandated pattern — database-generated sequential IDs are not a first-class pattern
+- Generic `TId` constrained to `ITypedId` — prevents raw primitives like `Entity<Guid>`. Application-generated IDs (e.g., `Guid.NewGuid()` in factory methods) are the mandated pattern — database-generated sequential IDs are not a first-class pattern
+- Memento-capable variant: `Entity<TId, T, TSelf, TMemento>` adds `T` (the backing value type) so that `TId : ITypedId<T>` and `TMemento : IHasIdentity<T>` can be enforced — the base class handles Id directly via `memento.Id = Id.Value` without abstract Get/Set methods
 - Equality by ID — two entities with the same ID are equal regardless of other property values
 - Protected constructor — only accessible to subclasses and factory methods
 - Public getters with private setters — application layer can read state for DTO projection; mutation only through explicit domain methods that enforce invariants

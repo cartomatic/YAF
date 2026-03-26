@@ -84,6 +84,12 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     }
 
     /// <inheritdoc cref="IHydratable{TMemento}.Hydrate"/>
+    /// <remarks>
+    /// State is mutated before validation: Id, then <see cref="HydrateCore"/>, then
+    /// <see cref="IValidatable.GetValidationErrors"/>. If validation fails, the entity
+    /// is left in a partially-mutated state. Callers should discard the entity instance
+    /// on <see cref="ValidationException"/> rather than continuing to use it.
+    /// </remarks>
     public void Hydrate(TMemento memento)
     {
         ArgumentNullException.ThrowIfNull(memento);

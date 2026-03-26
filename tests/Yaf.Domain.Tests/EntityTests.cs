@@ -165,7 +165,7 @@ public class EntityMementoTests
             Price = memento.Price;
         }
 
-        protected override IReadOnlyCollection<IError> ValidateState()
+        public override IReadOnlyCollection<IError> Validate()
         {
             var errors = new List<IError>();
             if (string.IsNullOrWhiteSpace(Name))

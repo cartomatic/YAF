@@ -79,7 +79,7 @@ public class ValueObjectMementoTests
             B = memento.B;
         }
 
-        protected override IReadOnlyCollection<IError> ValidateState()
+        public override IReadOnlyCollection<IError> Validate()
         {
             var errors = new List<IError>();
 

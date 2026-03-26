@@ -7,7 +7,7 @@ namespace Yaf.Domain;
 /// <summary>
 /// Base class for entities that support memento-based persistence.
 /// Concrete types must override <see cref="SnapshotCore"/>, <see cref="RestoreCore"/>,
-/// <see cref="HydrateCore"/>, and <see cref="ValidateState"/>.
+/// <see cref="HydrateCore"/>, and <see cref="Validate"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -89,9 +89,6 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
         ((IValidatable)this).ThrowIfInvalid();
     }
 
-    /// <inheritdoc />
-    IReadOnlyCollection<IError> IValidatable.Validate() => ValidateState();
-
     /// <summary>
     /// Populates the provided memento with subclass-specific state (not the Id).
     /// </summary>
@@ -117,5 +114,5 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     /// Return an empty collection if the state is valid.
     /// </summary>
     /// <returns>A collection of validation errors, empty if valid.</returns>
-    protected abstract IReadOnlyCollection<IError> ValidateState();
+    public abstract IReadOnlyCollection<IError> Validate();
 }

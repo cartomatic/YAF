@@ -94,14 +94,15 @@ All options above as a cohesive set. The building blocks work together: `Entity<
 
 ### IHasIdentity\<T\>
 
-- `IHasIdentity<T> where T : IEquatable<T>` — interface enforcing a `T Id { get; set; }` property on mementos
-- Mementos for entities and aggregate roots must implement `IHasIdentity<T>` so that the base memento classes (`Entity<TId, T, TSelf, TMemento>`, `AggregateRoot<TId, T, TSelf, TMemento>`) can handle identity snapshot/restore/hydrate without abstract methods
+- `IHasIdentity` — non-generic base interface with `Type IdentityType` and `object BoxedId { get; set; }` for runtime identity bridging
+- `IHasIdentity<T> : IHasIdentity where T : IEquatable<T>` — generic interface enforcing `T Id { get; set; }`. Provides default interface implementations (DIM) for `IdentityType` (`typeof(T)`) and `BoxedId` (delegates to `Id`), so consumers only need to implement `T Id`
+- Mementos for entities and aggregate roots should implement `IHasIdentity<T>` so the base memento classes can handle identity automatically
 - Consumer usage: `interface IOrderMemento : IHasIdentity<Guid> { string Name { get; set; } }`
 
 ### Entity\<TId\>
 
 - Generic `TId` constrained to `ITypedId` — prevents raw primitives like `Entity<Guid>`. Application-generated IDs (e.g., `Guid.NewGuid()` in factory methods) are the mandated pattern — database-generated sequential IDs are not a first-class pattern
-- Memento-capable variant: `Entity<TId, T, TSelf, TMemento>` adds `T` (the backing value type) so that `TId : ITypedId<T>` and `TMemento : IHasIdentity<T>` can be enforced — the base class handles Id directly via `memento.Id = Id.Value` without abstract Get/Set methods
+- Memento-capable variant: `Entity<TId, TSelf, TMemento>` (3 type params — no separate `T` param). When `TMemento` implements `IHasIdentity<T>` with a `T` matching `TId`'s backing type, the base class handles Id automatically via `IHasIdentity.BoxedId` and `ITypedId.BoxedValue`, using `Activator.CreateInstance` for Id reconstruction. Type compatibility is checked via `TId.IdentityType == hasIdentity.IdentityType` (static abstract, no reflection). No abstract Get/Set/Create Id methods needed
 - Equality by ID — two entities with the same ID are equal regardless of other property values
 - Protected constructor — only accessible to subclasses and factory methods
 - Public getters with private setters — application layer can read state for DTO projection; mutation only through explicit domain methods that enforce invariants
@@ -124,9 +125,9 @@ All options above as a cohesive set. The building blocks work together: `Entity<
 
 ### TypedId\<T\>
 
-- `ITypedId` — non-generic marker interface for use as a generic constraint (`where TId : ITypedId`)
+- `ITypedId` — non-generic base interface with `static abstract Type IdentityType` (for compile-time generic dispatch) and `object BoxedValue` (for runtime identity bridging). Used as a generic constraint (`where TId : ITypedId`)
 - `ITypedId<T> : ITypedId where T : IEquatable<T>` — generic interface exposing `T Value` for infrastructure access (e.g., EF Core value converters)
-- `abstract record TypedId<T>(T Value) : ITypedId<T> where T : IEquatable<T>` — abstract record class providing value equality and `ToString()` via record semantics
+- `abstract record TypedId<T> : ITypedId<T> where T : IEquatable<T>` — abstract record class with explicit constructor (not positional), provides value equality and `ToString()` via record semantics. Implements `IdentityType` as `typeof(T)` and `BoxedValue` as `Value!`
 - Consumer creates their own: `public record OrderId(Guid Value) : TypedId<Guid>(Value)`
 - No implicit/explicit conversion operators — consumers use `id.Value` or `new OrderId(guid)`
 - Infrastructure maps to primitive types via EF Core value converters

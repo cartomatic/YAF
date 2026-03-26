@@ -24,24 +24,25 @@ The existing `ValueObject` + `IMemento` + `IHydratable` implementations establis
 ### Type Hierarchy
 
 ```
-ITypedId (interface — constraint marker)
-├── ITypedId<T> : ITypedId (interface — typed value access)
-│   └── TypedId<T> : ITypedId<T> (abstract record class)
+ITypedId (interface — static abstract IdentityType + BoxedValue)
+├── ITypedId<T> : ITypedId (interface — T Value)
+│   └── TypedId<T> : ITypedId<T> (abstract record class, explicit constructor)
 │       └── OrderId(Guid Value) : TypedId<Guid> (consumer-defined)
 
-IHasIdentity<T> (interface — enforces T Id on mementos)
+IHasIdentity (interface — IdentityType + BoxedId for runtime bridging)
+├── IHasIdentity<T> : IHasIdentity (interface — T Id + DIM for non-generic members)
 
 IDomainEvent (marker interface)
 
 Entity<TId> where TId : ITypedId (abstract class — identity + equality)
-├── Entity<TId, T, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
-│   where TId : ITypedId<T>, TMemento : class, IHasIdentity<T>
-│   (abstract class — base handles Id via memento.Id, Core methods for subclass state)
+├── Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
+│   where TId : ITypedId, TMemento : class
+│   (auto-handles Id when TMemento : IHasIdentity and types match)
 
 AggregateRoot<TId> : Entity<TId> (abstract class — adds domain events)
-├── AggregateRoot<TId, T, TSelf, TMemento> : AggregateRoot<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
-│   where TId : ITypedId<T>, TMemento : class, IHasIdentity<T>
-│   (abstract class — base handles Id via memento.Id + events)
+├── AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
+│   where TId : ITypedId, TMemento : class
+│   (auto-handles Id when TMemento : IHasIdentity and types match + events)
 ```
 
 ### Key Design Decisions
@@ -70,9 +71,9 @@ A concrete static method on an abstract class **does** satisfy a `static abstrac
 
 ### TypedId Design
 
-- `ITypedId` — non-generic marker interface for use as a generic constraint (`where TId : ITypedId`)
+- `ITypedId` — non-generic base interface with `static abstract Type IdentityType` (for compile-time generic dispatch) and `object BoxedValue` (for runtime identity bridging). Used as a generic constraint (`where TId : ITypedId`)
 - `ITypedId<T>` — generic interface exposing `T Value` for infrastructure access (e.g., EF Core converters). Constrained: `where T : IEquatable<T>` to ensure backing types have proper equality semantics
-- `TypedId<T>` — abstract record class with `where T : IEquatable<T>`. Consumer inherits: `public record OrderId(Guid Value) : TypedId<Guid>(Value)`
+- `TypedId<T>` — abstract record class with explicit constructor (not positional) and `where T : IEquatable<T>`. Implements `IdentityType` as `typeof(T)` and `BoxedValue` as `Value!`. Consumer inherits: `public record OrderId(Guid Value) : TypedId<Guid>(Value)`
 - No guard against default/empty values on TypedId itself — guard in Entity constructors/factory methods instead
 - No `IComparable` in this iteration
 - No implicit/explicit conversion operators — consumers use `id.Value` or `new OrderId(guid)`
@@ -108,19 +109,19 @@ Entity<TId>.GetHashCode():
 Mirrors `ValueObject<TSelf, TMemento>`:
 
 ```
-Entity<TId, T, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
-  where TId : ITypedId<T>, T : IEquatable<T>, TMemento : class, IHasIdentity<T>
-  - Snapshot(TMemento) — memento.Id = Id.Value; SnapshotCore(memento)
-  - static Restore(TMemento) — GetUninitializedObject + Id = CreateId(memento.Id) + RestoreCore + Validate
-  - Hydrate(TMemento) — Id = CreateId(memento.Id); HydrateCore(memento); Validate()
-  - abstract CreateId(T value) → TId — converts raw value back to typed ID (e.g., new OrderId(guid))
+Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
+  where TId : ITypedId, TSelf : Entity<TId, TSelf, TMemento>, TMemento : class
+  - Snapshot(TMemento) — if memento is IHasIdentity with matching type: BoxedId = Id.BoxedValue; SnapshotCore(memento)
+  - static Restore(TMemento) — GetUninitializedObject + if IHasIdentity: Id = Activator.CreateInstance(TId, BoxedId) + RestoreCore + Validate
+  - Hydrate(TMemento) — same Id handling as Restore; HydrateCore(memento); Validate()
   - abstract SnapshotCore(TMemento) — subclass snapshots its own properties (not Id)
   - abstract RestoreCore(TMemento) — subclass restores its own properties (not Id)
   - abstract HydrateCore(TMemento) — subclass hydrates its own properties (not Id)
   - abstract Validate() → IReadOnlyCollection<IError>
+  - No abstract CreateId/GetId/SetId methods — Id handled automatically
 ```
 
-**Id handling:** The base class handles snapshotting and restoring the `Id` property directly via `IHasIdentity<T>` on the memento. Snapshot writes `memento.Id = Id.Value` (possible because `TId : ITypedId<T>`). Restore/Hydrate reads `memento.Id` and converts back to `TId` via the abstract `CreateId(T)` method (needed because the base class cannot construct a concrete `TId` — record constructors are not expressible as a generic constraint).
+**Id handling:** When `TMemento` implements `IHasIdentity<T>` with a `T` matching `TId`'s backing type, the base class handles identity automatically. Type compatibility is checked via `TId.IdentityType == hasIdentity.IdentityType` (static abstract on `ITypedId`, no reflection). Snapshot writes `hasIdentity.BoxedId = Id.BoxedValue`. Restore/Hydrate reads `hasIdentity.BoxedId` and constructs `TId` via `Activator.CreateInstance(typeof(TId), boxedId)`. No abstract Id methods are needed — consumers only implement `*Core` template methods for their own state.
 
 **Hydrate validates:** Both `Restore()` and `Hydrate()` call `Validate()` after populating state and throw `ValidationException` on invalid state. We don't trust input in either path — data from EF Core could be corrupted or from an incompatible schema migration.
 

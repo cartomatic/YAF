@@ -158,8 +158,8 @@ EF Core loads memento from database
 |---------|-------|
 | `IMemento<TSelf, TMemento>` interface | Yaf.Domain.Interfaces |
 | `IHydratable<TMemento>` interface | Yaf.Domain.Interfaces |
-| `IHasIdentity<T>` interface | Yaf.Domain.Interfaces |
-| `Snapshot` / `Restore` / `Hydrate` methods | Base classes handle Id via `IHasIdentity<T>`; `*Core` methods are consumer-defined for subclass state |
+| `IHasIdentity` / `IHasIdentity<T>` interfaces | Yaf.Domain.Interfaces — non-generic base with `IdentityType`/`BoxedId`; generic adds `T Id` with DIM for the non-generic members |
+| `Snapshot` / `Restore` / `Hydrate` methods | Base classes handle Id automatically when `TMemento : IHasIdentity<T>` matches `TId : ITypedId<T>` — uses `BoxedValue`/`BoxedId` for transfer, `Activator.CreateInstance` for Id reconstruction, `TId.IdentityType` for type compatibility check; `*Core` methods are consumer-defined for subclass state |
 | Concrete memento types (DTOs) | Yaf.Infrastructure (consumer-defined) |
 | EF Core entity configuration for mementos | Yaf.Infrastructure (consumer-defined) |
 | Encryption of `[Encryptable]` properties | Yaf.Infrastructure |

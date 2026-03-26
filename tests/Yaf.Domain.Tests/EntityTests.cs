@@ -134,7 +134,7 @@ public class EntityMementoTests
         public decimal Price { get; set; }
     }
 
-    private class Product : Entity<ProductId, Guid, Product, IProductMemento>
+    private class Product : Entity<ProductId, Product, IProductMemento>
     {
         public string Name { get; private set; } = string.Empty;
         public decimal Price { get; private set; }
@@ -146,8 +146,6 @@ public class EntityMementoTests
         }
 
         public static Product Create(ProductId id, string name, decimal price) => new(id, name, price);
-
-        protected override ProductId CreateId(Guid value) => new(value);
 
         protected override void SnapshotCore(IProductMemento memento)
         {

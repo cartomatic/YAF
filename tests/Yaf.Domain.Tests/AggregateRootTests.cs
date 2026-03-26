@@ -122,7 +122,7 @@ public class AggregateRootMementoTests
         public decimal Total { get; set; }
     }
 
-    private class Invoice : AggregateRoot<InvoiceId, Guid, Invoice, IInvoiceMemento>
+    private class Invoice : AggregateRoot<InvoiceId, Invoice, IInvoiceMemento>
     {
         public string Customer { get; private set; } = string.Empty;
         public decimal Total { get; private set; }
@@ -139,8 +139,6 @@ public class AggregateRootMementoTests
             invoice.AddDomainEvent(new InvoiceCreated(id));
             return invoice;
         }
-
-        protected override InvoiceId CreateId(Guid value) => new(value);
 
         protected override void SnapshotCore(IInvoiceMemento memento)
         {

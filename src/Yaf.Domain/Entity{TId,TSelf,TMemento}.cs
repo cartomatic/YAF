@@ -5,15 +5,15 @@ namespace Yaf.Domain;
 
 /// <summary>
 /// Base class for entities that support memento-based persistence.
-/// Concrete types must override <see cref="CreateId"/>, <see cref="SnapshotCore"/>,
-/// <see cref="RestoreCore"/>, <see cref="HydrateCore"/>, and <see cref="Validate"/>.
+/// Concrete types must override <see cref="SnapshotCore"/>, <see cref="RestoreCore"/>,
+/// <see cref="HydrateCore"/>, and <see cref="Validate"/>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The base class handles the <see cref="Entity{TId}.Id"/> property in all memento operations
-/// via <see cref="IHasIdentity{T}"/> on the memento. Snapshot writes <c>memento.Id = Id.Value</c>.
-/// Restore/Hydrate reads <c>memento.Id</c> and converts back to <typeparamref name="TId"/>
-/// via the abstract <see cref="CreateId"/> method.
+/// When <typeparamref name="TMemento"/> implements <see cref="IHasIdentity{T}"/> with the same
+/// <c>T</c> as <typeparamref name="TId"/>'s <see cref="ITypedId{T}"/>, the base class handles
+/// identity snapshot, restore, and hydrate automatically via cached reflection.
+/// The <c>*Core</c> template methods are for subclass-specific state only.
 /// </para>
 /// <para>
 /// Properties must use <c>{ get; private set; }</c> — positional parameters
@@ -26,14 +26,12 @@ namespace Yaf.Domain;
 /// </para>
 /// </remarks>
 /// <typeparam name="TId">The strongly-typed identifier type.</typeparam>
-/// <typeparam name="T">The backing value type of the identifier (e.g., <see cref="Guid"/>).</typeparam>
 /// <typeparam name="TSelf">The concrete entity type (CRTP pattern).</typeparam>
-/// <typeparam name="TMemento">The memento contract, must implement <see cref="IHasIdentity{T}"/>.</typeparam>
-public abstract class Entity<TId, T, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
-    where TId : ITypedId<T>
-    where T : IEquatable<T>
-    where TSelf : Entity<TId, T, TSelf, TMemento>
-    where TMemento : class, IHasIdentity<T>
+/// <typeparam name="TMemento">The memento contract. Should implement <see cref="IHasIdentity{T}"/> for automatic identity handling.</typeparam>
+public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
+    where TId : ITypedId
+    where TSelf : Entity<TId, TSelf, TMemento>
+    where TMemento : class
 {
     /// <summary>
     /// Initializes a new instance of the entity with the specified identifier.
@@ -54,7 +52,7 @@ public abstract class Entity<TId, T, TSelf, TMemento> : Entity<TId>, IMemento<TS
     public void Snapshot(TMemento memento)
     {
         ArgumentNullException.ThrowIfNull(memento);
-        memento.Id = Id.Value;
+        MementoIdentityBridge<TId, TMemento>.WriteId?.Invoke(memento, Id);
         SnapshotCore(memento);
     }
 
@@ -63,7 +61,12 @@ public abstract class Entity<TId, T, TSelf, TMemento> : Entity<TId>, IMemento<TS
     {
         ArgumentNullException.ThrowIfNull(memento);
         var instance = (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
-        instance.Id = instance.CreateId(memento.Id);
+
+        if (MementoIdentityBridge<TId, TMemento>.ReadId is not null)
+        {
+            instance.Id = MementoIdentityBridge<TId, TMemento>.ReadId(memento);
+        }
+
         instance.RestoreCore(memento);
 
         var errors = instance.Validate();
@@ -79,7 +82,12 @@ public abstract class Entity<TId, T, TSelf, TMemento> : Entity<TId>, IMemento<TS
     public void Hydrate(TMemento memento)
     {
         ArgumentNullException.ThrowIfNull(memento);
-        Id = CreateId(memento.Id);
+
+        if (MementoIdentityBridge<TId, TMemento>.ReadId is not null)
+        {
+            Id = MementoIdentityBridge<TId, TMemento>.ReadId(memento);
+        }
+
         HydrateCore(memento);
 
         var errors = Validate();
@@ -88,13 +96,6 @@ public abstract class Entity<TId, T, TSelf, TMemento> : Entity<TId>, IMemento<TS
             throw new ValidationException(typeof(TSelf), errors);
         }
     }
-
-    /// <summary>
-    /// Creates a typed identifier from the raw backing value.
-    /// </summary>
-    /// <param name="value">The raw identity value from the memento.</param>
-    /// <returns>A strongly-typed identifier instance.</returns>
-    protected abstract TId CreateId(T value);
 
     /// <summary>
     /// Populates the provided memento with subclass-specific state (not the Id).

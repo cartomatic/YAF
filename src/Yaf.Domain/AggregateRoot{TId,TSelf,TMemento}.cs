@@ -36,6 +36,14 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     where TSelf : AggregateRoot<TId, TSelf, TMemento>
     where TMemento : class
 {
+    private static readonly Type? IdValueType = Array.Find(
+        typeof(TId).GetInterfaces(),
+        i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ITypedId<>))
+        ?.GetGenericArguments()[0];
+
+    private static bool IsIdentityCompatible(IHasIdentity hasIdentity) =>
+        IdValueType is not null && hasIdentity.IdentityType == IdValueType;
+
     /// <summary>
     /// Initializes a new instance of the aggregate root with the specified identifier.
     /// </summary>
@@ -56,7 +64,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     {
         ArgumentNullException.ThrowIfNull(memento);
 
-        if (memento is IHasIdentity hasIdentity)
+        if (memento is IHasIdentity hasIdentity && IsIdentityCompatible(hasIdentity))
         {
             hasIdentity.BoxedId = Id.BoxedValue;
         }
@@ -70,7 +78,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
         ArgumentNullException.ThrowIfNull(memento);
         var instance = (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
 
-        if (memento is IHasIdentity hasIdentity)
+        if (memento is IHasIdentity hasIdentity && IsIdentityCompatible(hasIdentity))
         {
             instance.Id = (TId)Activator.CreateInstance(typeof(TId), hasIdentity.BoxedId)!;
         }
@@ -91,7 +99,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     {
         ArgumentNullException.ThrowIfNull(memento);
 
-        if (memento is IHasIdentity hasIdentity)
+        if (memento is IHasIdentity hasIdentity && IsIdentityCompatible(hasIdentity))
         {
             Id = (TId)Activator.CreateInstance(typeof(TId), hasIdentity.BoxedId)!;
         }

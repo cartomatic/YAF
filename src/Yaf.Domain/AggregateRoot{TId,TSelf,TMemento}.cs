@@ -17,6 +17,12 @@ namespace Yaf.Domain;
 /// The <c>*Core</c> template methods are for subclass-specific state only.
 /// </para>
 /// <para>
+/// When <typeparamref name="TMemento"/> does not implement <see cref="IHasIdentity{T}"/>
+/// (or the identity types are incompatible), the base class skips automatic identity handling.
+/// In this case, the consumer must read and write the Id in <see cref="RestoreCore"/>,
+/// <see cref="HydrateCore"/>, and <see cref="SnapshotCore"/> manually.
+/// </para>
+/// <para>
 /// Properties must use <c>{ get; private set; }</c> — positional parameters
 /// and <c>init</c> accessors are not compatible with memento restoration via
 /// <see cref="System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject"/>.

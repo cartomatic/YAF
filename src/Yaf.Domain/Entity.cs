@@ -24,6 +24,7 @@ public abstract class Entity<TId> : IEquatable<Entity<TId>>
     /// <param name="id">The entity identifier.</param>
     protected Entity(TId id)
     {
+        ArgumentNullException.ThrowIfNull(id);
         Id = id;
     }
 

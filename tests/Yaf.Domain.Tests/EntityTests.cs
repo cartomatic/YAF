@@ -275,3 +275,98 @@ public class EntityMementoTests
         product.Should().BeAssignableTo<IHydratable<IProductMemento>>();
     }
 }
+
+public class EntityManualIdMementoTests
+{
+    private record ItemId(Guid Value) : TypedId<Guid>(Value);
+
+    private interface IItemMemento
+    {
+        Guid Id { get; set; }
+        string Label { get; set; }
+    }
+
+    private class ItemMemento : IItemMemento
+    {
+        public Guid Id { get; set; }
+        public string Label { get; set; } = string.Empty;
+    }
+
+    private class Item : Entity<ItemId, Item, IItemMemento>
+    {
+        public string Label { get; private set; } = string.Empty;
+
+        private Item(ItemId id, string label) : base(id)
+        {
+            Label = label;
+        }
+
+        public static Item Create(ItemId id, string label) => new(id, label);
+
+        protected override void SnapshotCore(IItemMemento memento)
+        {
+            memento.Id = Id.Value;
+            memento.Label = Label;
+        }
+
+        protected override void RestoreCore(IItemMemento memento)
+        {
+            Id = new ItemId(memento.Id);
+            Label = memento.Label;
+        }
+
+        protected override void HydrateCore(IItemMemento memento)
+        {
+            Id = new ItemId(memento.Id);
+            Label = memento.Label;
+        }
+
+        public override IReadOnlyCollection<IError> GetValidationErrors()
+        {
+            var errors = new List<IError>();
+            if (string.IsNullOrWhiteSpace(Label))
+                errors.Add(new ItemError("EMPTY_LABEL", "Label cannot be empty"));
+            return errors;
+        }
+
+        private record ItemError(string Code, string Message) : IError;
+    }
+
+    [Fact]
+    public void Restore_WithoutIHasIdentity_ConsumerHandlesIdManually()
+    {
+        var guid = Guid.NewGuid();
+        var memento = new ItemMemento { Id = guid, Label = "Manual" };
+
+        var item = Item.Restore(memento);
+
+        item.Id.Should().Be(new ItemId(guid));
+        item.Label.Should().Be("Manual");
+    }
+
+    [Fact]
+    public void Snapshot_WithoutIHasIdentity_ConsumerHandlesIdManually()
+    {
+        var id = new ItemId(Guid.NewGuid());
+        var item = Item.Create(id, "Manual");
+        var memento = new ItemMemento();
+
+        item.Snapshot(memento);
+
+        memento.Id.Should().Be(id.Value);
+        memento.Label.Should().Be("Manual");
+    }
+
+    [Fact]
+    public void Hydrate_WithoutIHasIdentity_ConsumerHandlesIdManually()
+    {
+        var item = Item.Create(new ItemId(Guid.NewGuid()), "Original");
+        var newGuid = Guid.NewGuid();
+        var memento = new ItemMemento { Id = newGuid, Label = "Updated" };
+
+        item.Hydrate(memento);
+
+        item.Id.Should().Be(new ItemId(newGuid));
+        item.Label.Should().Be("Updated");
+    }
+}

@@ -33,13 +33,8 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     where TSelf : Entity<TId, TSelf, TMemento>
     where TMemento : class
 {
-    private static readonly Type? IdValueType = Array.Find(
-        typeof(TId).GetInterfaces(),
-        i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ITypedId<>))
-        ?.GetGenericArguments()[0];
-
     private static bool IsIdentityCompatible(IHasIdentity hasIdentity) =>
-        IdValueType is not null && hasIdentity.IdentityType == IdValueType;
+        hasIdentity.IdentityType == TId.IdentityType;
 
     /// <summary>
     /// Initializes a new instance of the entity with the specified identifier.

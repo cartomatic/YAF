@@ -65,7 +65,7 @@ public class TypedIdTests
     {
         var id = new TestGuidId(Guid.NewGuid());
 
-        id.Should().BeAssignableTo<ITypedId>();
+        (id is ITypedId).Should().BeTrue();
     }
 
     [Fact]

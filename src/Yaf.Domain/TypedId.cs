@@ -18,6 +18,9 @@ public abstract record TypedId<T> : ITypedId<T>
     /// <inheritdoc cref="ITypedId{T}.Value"/>
     public T Value { get; }
 
+    /// <inheritdoc cref="ITypedId.IdentityType"/>
+    static Type ITypedId.IdentityType => typeof(T);
+
     /// <inheritdoc />
     public Type ValueType => typeof(T);
 

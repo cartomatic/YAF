@@ -8,7 +8,14 @@ namespace Yaf.Domain.Interfaces;
 public interface ITypedId
 {
     /// <summary>
+    /// The <see cref="Type"/> of the backing value for this identifier type (e.g., <c>typeof(Guid)</c>).
+    /// Accessible statically via <c>TId.IdentityType</c> for compile-time generic dispatch.
+    /// </summary>
+    static abstract Type IdentityType { get; }
+
+    /// <summary>
     /// The <see cref="Type"/> of the backing value (e.g., <c>typeof(Guid)</c>).
+    /// Instance-level equivalent of <see cref="IdentityType"/>.
     /// </summary>
     Type ValueType { get; }
 

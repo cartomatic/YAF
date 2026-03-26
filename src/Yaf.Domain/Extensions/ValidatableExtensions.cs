@@ -19,10 +19,9 @@ public static class ValidatableExtensions
     /// <exception cref="ValidationException">Thrown when validation produces one or more errors.</exception>
     public static void ThrowIfInvalid(this IValidatable validatable)
     {
-        var errors = validatable.GetValidationErrors();
-        if (errors.Count > 0)
+        if (!validatable.IsValid())
         {
-            throw new ValidationException(validatable.GetType(), errors);
+            throw new ValidationException(validatable.GetType(), validatable.GetValidationErrors());
         }
     }
 }

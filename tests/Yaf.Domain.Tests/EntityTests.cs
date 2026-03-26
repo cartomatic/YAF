@@ -121,9 +121,8 @@ public class EntityMementoTests
 {
     private record ProductId(Guid Value) : TypedId<Guid>(Value);
 
-    private interface IProductMemento
+    private interface IProductMemento : IHasIdentity<Guid>
     {
-        Guid Id { get; set; }
         string Name { get; set; }
         decimal Price { get; set; }
     }
@@ -135,7 +134,7 @@ public class EntityMementoTests
         public decimal Price { get; set; }
     }
 
-    private class Product : Entity<ProductId, Product, IProductMemento>
+    private class Product : Entity<ProductId, Guid, Product, IProductMemento>
     {
         public string Name { get; private set; } = string.Empty;
         public decimal Price { get; private set; }
@@ -148,9 +147,7 @@ public class EntityMementoTests
 
         public static Product Create(ProductId id, string name, decimal price) => new(id, name, price);
 
-        protected override ProductId GetIdFromMemento(IProductMemento memento) => new(memento.Id);
-
-        protected override void SetIdOnMemento(IProductMemento memento, ProductId id) => memento.Id = id.Value;
+        protected override ProductId CreateId(Guid value) => new(value);
 
         protected override void SnapshotCore(IProductMemento memento)
         {

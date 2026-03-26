@@ -109,9 +109,8 @@ public class AggregateRootMementoTests
     private record InvoiceId(Guid Value) : TypedId<Guid>(Value);
     private record InvoiceCreated(InvoiceId InvoiceId) : IDomainEvent;
 
-    private interface IInvoiceMemento
+    private interface IInvoiceMemento : IHasIdentity<Guid>
     {
-        Guid Id { get; set; }
         string Customer { get; set; }
         decimal Total { get; set; }
     }
@@ -123,7 +122,7 @@ public class AggregateRootMementoTests
         public decimal Total { get; set; }
     }
 
-    private class Invoice : AggregateRoot<InvoiceId, Invoice, IInvoiceMemento>
+    private class Invoice : AggregateRoot<InvoiceId, Guid, Invoice, IInvoiceMemento>
     {
         public string Customer { get; private set; } = string.Empty;
         public decimal Total { get; private set; }
@@ -141,9 +140,7 @@ public class AggregateRootMementoTests
             return invoice;
         }
 
-        protected override InvoiceId GetIdFromMemento(IInvoiceMemento memento) => new(memento.Id);
-
-        protected override void SetIdOnMemento(IInvoiceMemento memento, InvoiceId id) => memento.Id = id.Value;
+        protected override InvoiceId CreateId(Guid value) => new(value);
 
         protected override void SnapshotCore(IInvoiceMemento memento)
         {

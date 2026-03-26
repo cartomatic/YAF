@@ -29,15 +29,19 @@ ITypedId (interface — constraint marker)
 │   └── TypedId<T> : ITypedId<T> (abstract record class)
 │       └── OrderId(Guid Value) : TypedId<Guid> (consumer-defined)
 
+IHasIdentity<T> (interface — enforces T Id on mementos)
+
 IDomainEvent (marker interface)
 
 Entity<TId> where TId : ITypedId (abstract class — identity + equality)
-├── Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
-│   (abstract class — adds memento template methods)
+├── Entity<TId, T, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
+│   where TId : ITypedId<T>, TMemento : class, IHasIdentity<T>
+│   (abstract class — base handles Id via memento.Id, Core methods for subclass state)
 
 AggregateRoot<TId> : Entity<TId> (abstract class — adds domain events)
-├── AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
-│   (abstract class — adds memento template methods + events)
+├── AggregateRoot<TId, T, TSelf, TMemento> : AggregateRoot<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
+│   where TId : ITypedId<T>, TMemento : class, IHasIdentity<T>
+│   (abstract class — base handles Id via memento.Id + events)
 ```
 
 ### Key Design Decisions
@@ -104,17 +108,19 @@ Entity<TId>.GetHashCode():
 Mirrors `ValueObject<TSelf, TMemento>`:
 
 ```
-Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
-  - Snapshot(TMemento) — base handles Id, then calls SnapshotCore for subclass state
-  - static Restore(TMemento) — RuntimeHelpers.GetUninitializedObject + base restores Id + RestoreCore + Validate
-  - Hydrate(TMemento) — base handles Id, calls HydrateCore, then Validate (throws on invalid state)
+Entity<TId, T, TSelf, TMemento> : Entity<TId>, IMemento<TSelf, TMemento>, IHydratable<TMemento>
+  where TId : ITypedId<T>, T : IEquatable<T>, TMemento : class, IHasIdentity<T>
+  - Snapshot(TMemento) — memento.Id = Id.Value; SnapshotCore(memento)
+  - static Restore(TMemento) — GetUninitializedObject + Id = CreateId(memento.Id) + RestoreCore + Validate
+  - Hydrate(TMemento) — Id = CreateId(memento.Id); HydrateCore(memento); Validate()
+  - abstract CreateId(T value) → TId — converts raw value back to typed ID (e.g., new OrderId(guid))
   - abstract SnapshotCore(TMemento) — subclass snapshots its own properties (not Id)
   - abstract RestoreCore(TMemento) — subclass restores its own properties (not Id)
   - abstract HydrateCore(TMemento) — subclass hydrates its own properties (not Id)
   - abstract Validate() → IReadOnlyCollection<IError>
 ```
 
-**Id handling:** The base class (`Entity<TId, TSelf, TMemento>`) handles snapshotting, restoring, and hydrating the `Id` property. The `*Core` template methods are for subclass-specific state only. This requires TMemento to expose an Id-compatible property — the base class needs a way to read/write the Id on the memento. This is achieved via an abstract method or a convention (e.g., the memento must have a property that the subclass maps in its Core methods). **Decision: the base class handles Id via abstract methods `GetIdFromMemento(TMemento)` and `SetIdOnMemento(TMemento)` that subclasses implement.**
+**Id handling:** The base class handles snapshotting and restoring the `Id` property directly via `IHasIdentity<T>` on the memento. Snapshot writes `memento.Id = Id.Value` (possible because `TId : ITypedId<T>`). Restore/Hydrate reads `memento.Id` and converts back to `TId` via the abstract `CreateId(T)` method (needed because the base class cannot construct a concrete `TId` — record constructors are not expressible as a generic constraint).
 
 **Hydrate validates:** Both `Restore()` and `Hydrate()` call `Validate()` after populating state and throw `ValidationException` on invalid state. We don't trust input in either path — data from EF Core could be corrupted or from an incompatible schema migration.
 

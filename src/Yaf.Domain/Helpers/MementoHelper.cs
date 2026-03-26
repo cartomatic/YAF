@@ -13,7 +13,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     where TSelf : Entity<TId>
     where TMemento : class
 {
-    private static readonly Func<object, TId>? IdFactory = BuildIdFactory();
+    private static readonly Func<object, TId>? _idFactory = Build_idFactory();
 
     /// <summary>
     /// Writes the entity's identity to the memento if types are compatible.
@@ -35,9 +35,9 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     {
         if (memento is IHasIdentity hasIdentity
             && hasIdentity.IdentityType == TId.IdentityType
-            && IdFactory is not null)
+            && _idFactory is not null)
         {
-            return (IdFactory(hasIdentity.BoxedId), true);
+            return (_idFactory(hasIdentity.BoxedId), true);
         }
 
         return (default, false);
@@ -60,7 +60,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         }
     }
 
-    private static Func<object, TId>? BuildIdFactory()
+    private static Func<object, TId>? Build_idFactory()
     {
         var backingType = TId.IdentityType;
         var constructor = typeof(TId).GetConstructor([backingType]);

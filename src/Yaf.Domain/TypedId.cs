@@ -22,9 +22,6 @@ public abstract record TypedId<T> : ITypedId<T>
     static Type ITypedId.IdentityType => typeof(T);
 
     /// <inheritdoc />
-    public Type ValueType => typeof(T);
-
-    /// <inheritdoc />
     public object BoxedValue => Value!;
 
     /// <summary>

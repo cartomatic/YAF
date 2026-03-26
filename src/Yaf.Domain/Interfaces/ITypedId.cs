@@ -14,12 +14,6 @@ public interface ITypedId
     static abstract Type IdentityType { get; }
 
     /// <summary>
-    /// The <see cref="Type"/> of the backing value (e.g., <c>typeof(Guid)</c>).
-    /// Instance-level equivalent of <see cref="IdentityType"/>.
-    /// </summary>
-    Type ValueType { get; }
-
-    /// <summary>
     /// The backing value boxed as <see cref="object"/>.
     /// </summary>
     object BoxedValue { get; }

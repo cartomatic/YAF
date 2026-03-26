@@ -64,6 +64,7 @@ dotnet_style_prefer_collection_expression = true:suggestion
 # Using directives
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
+dotnet_diagnostic.IDE0005.severity = warning
 
 # Naming — severity matches ADR (error level)
 dotnet_naming_rule.interfaces_should_begin_with_i.severity = error
@@ -86,4 +87,7 @@ dotnet_naming_style.camel_case_with_underscore.capitalization = camel_case
 dotnet_diagnostic.CS1591.severity = none
 
 [*Tests/*.cs]
+dotnet_diagnostic.CS1591.severity = none
+
+[tests/**/*.cs]
 dotnet_diagnostic.CS1591.severity = none

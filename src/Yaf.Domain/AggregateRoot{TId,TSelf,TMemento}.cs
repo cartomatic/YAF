@@ -1,3 +1,4 @@
+using Yaf.Domain.Helpers;
 using Yaf.Domain.Interfaces;
 
 namespace Yaf.Domain;

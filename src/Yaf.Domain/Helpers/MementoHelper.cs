@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Yaf.Domain.Interfaces;
 
-namespace Yaf.Domain;
+namespace Yaf.Domain.Helpers;
 
 /// <summary>
 /// Shared memento orchestration logic used by both <see cref="Entity{TId,TSelf,TMemento}"/>

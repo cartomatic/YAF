@@ -22,10 +22,7 @@ public class AggregateRootEventTests
             return order;
         }
 
-        public void Ship()
-        {
-            AddDomainEvent(new OrderShipped(Id));
-        }
+        public void Ship() => AddDomainEvent(new OrderShipped(Id));
     }
 
     [Fact]

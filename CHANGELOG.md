@@ -8,20 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- `ITypedId` / `ITypedId<T>` — strongly-typed identifier interfaces with `IEquatable<T>` constraint on backing type
-- `TypedId<T>` — abstract record class for consumer-defined typed IDs (e.g., `record OrderId(Guid Value) : TypedId<Guid>(Value)`)
+- `ITypedId` / `ITypedId<T>` — strongly-typed identifier interfaces with `static abstract Type IdentityType`, `object BoxedValue`, and `IEquatable<T>` constraint on backing type
+- `TypedId<T>` — abstract record class (explicit constructor, not positional) for consumer-defined typed IDs (e.g., `record OrderId(Guid Value) : TypedId<Guid>(Value)`)
 - `IDomainEvent` — marker interface for in-process domain events (context envelope attached by infrastructure at dispatch time)
-- `Entity<TId>` — base class with identity-based equality, runtime type check, `IEquatable` support, and `==`/`!=` operators
-- `IHasIdentity<T>` — interface enforcing `T Id` property on mementos for base class identity handling
-- `Entity<TId, T, TSelf, TMemento>` — memento-capable entity with `Snapshot`/`Restore`/`Hydrate` (base handles Id via `IHasIdentity<T>`, `*Core` for subclass state), validates on both restore and hydrate
-- `AggregateRoot<TId>` — entity with domain event collection (`AddDomainEvent` protected, `ClearDomainEvents` public, lazy `??=` initialization)
-- `AggregateRoot<TId, T, TSelf, TMemento>` — memento-capable aggregate root with same template pattern as Entity
+- `IHasIdentity` / `IHasIdentity<T>` — non-generic base with `IdentityType`/`BoxedId` for runtime identity bridging; generic variant with default interface methods (DIM) so consumers only implement `T Id`; type guard on `BoxedId` setter
+- `IValidatable` — domain objects that validate their own state via `GetValidationErrors()`
+- `ValidatableExtensions` — `IsValid()` boolean check + `ThrowIfInvalid()` guard clause (single-collect, no double call)
+- `Entity<TId>` — base class with identity-based equality, runtime type check, `IEquatable` support, `==`/`!=` operators, null guard on constructor
+- `Entity<TId, TSelf, TMemento>` — memento-capable entity (3 type params) with `Snapshot`/`Restore`/`Hydrate`; auto-handles Id when `TMemento : IHasIdentity<T>` matches `TId : ITypedId<T>`; validates on both restore and hydrate via `IValidatable`
+- `AggregateRoot<TId>` — entity with domain event collection (`AddDomainEvent` protected, `ClearDomainEvents` public, lazy `??=` initialization, `Array.Empty` for empty reads)
+- `AggregateRoot<TId, TSelf, TMemento>` — memento-capable aggregate root with same pattern as Entity
+- `MementoHelper<TId, TSelf, TMemento>` — shared memento orchestration (identity bridging, compiled expression delegate factory for TypedId construction, uninitialized instance creation); fail-fast `InvalidOperationException` when TypedId lacks required constructor
+- Solution documentation: identity bridging, compiled factories, validation patterns (`docs/solutions/design-patterns/`)
 
 ### Changed
 
-- `.editorconfig` — aligned with coding style ADR: naming rule severities to error, added modern C# rules (file-scoped namespaces, collection expressions, target-typed new, pattern matching, null checking)
-- ADR: Domain Building Blocks — TypedId changed from record struct to abstract record class with `ITypedId`/`ITypedId<T>` interface hierarchy; TId constraint changed to `ITypedId`; added `IHasIdentity<T>` for mementos; application-generated IDs mandated
-- ADR: State Management — Memento Pattern — corrected incorrect C# limitation claim about static abstract on abstract classes; added `IHasIdentity<T>` to ownership table; added Hydrate validation requirement
+- `.editorconfig` — aligned with coding style ADR: naming rule severities to error, added modern C# rules (file-scoped namespaces, collection expressions, expression-bodied members, target-typed new, pattern matching, null checking, IDE0005 unused usings)
+- `Directory.Build.props` — added `EnforceCodeStyleInBuild=true` and moved `GenerateDocumentationFile=true` from src-only to root (required by IDE0005)
+- `ValueObject<TSelf, TMemento>` — implements `IValidatable`, uses `ThrowIfInvalid()` extension, `Validate()` renamed to `GetValidationErrors()`
+- ADR: Domain Building Blocks — TypedId changed from record struct to abstract record class with `ITypedId`/`ITypedId<T>` interface hierarchy; TId constraint changed to `ITypedId`; added `IHasIdentity` for mementos; application-generated IDs mandated
+- ADR: State Management — Memento Pattern — corrected incorrect C# limitation claim about static abstract on abstract classes; added `IHasIdentity` to ownership table; added Hydrate validation requirement
 
 ## 2026-03-25
 

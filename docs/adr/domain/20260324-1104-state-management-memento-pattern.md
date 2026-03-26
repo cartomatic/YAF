@@ -120,7 +120,7 @@ public interface IHydratable<TMemento>
 - Entities are mutable — they implement both `IMemento` and `IHydratable`. `Hydrate` reloads state into an existing tracked instance (e.g., EF Core change tracker). `Restore` creates a new instance for initial materialization.
 - Infrastructure can check `is IHydratable<TMemento>` to decide between hydrate-in-place vs restore-as-new.
 
-**C# limitation:** Abstract base types (e.g., `ValueObject<TSelf, TMemento>`) cannot declare `: IMemento<TSelf, TMemento>` because C# does not allow abstract classes to defer `static abstract` interface members to derived types. Concrete types must explicitly implement the interface.
+**C# note:** A concrete static method on an abstract class **does** satisfy a `static abstract` interface member. Abstract base types like `ValueObject<TSelf, TMemento>` can (and do) declare `: IMemento<TSelf, TMemento>` directly — the concrete `Restore` method on the base class satisfies the interface contract. Concrete derived types inherit the implementation for free. See [CRTP + Memento Pattern solution](../../solutions/logic-errors/csharp-static-abstract-crtp-memento-pattern.md) for details.
 
 ### Flow
 
@@ -147,7 +147,10 @@ EF Core loads memento from database
   → infrastructure decrypts [Encryptable] properties
     → existing domain object reloaded via Hydrate(memento)
       → domain updates internal state from memento
+        → Validate() called — throws ValidationException on invalid state
 ```
+
+**Validation on both paths:** Both `Restore` and `Hydrate` call `Validate()` after populating state and throw `ValidationException` on invalid state. Data from persistence cannot be trusted unconditionally — it could be corrupted or from an incompatible schema migration.
 
 ### Ownership
 
@@ -155,7 +158,8 @@ EF Core loads memento from database
 |---------|-------|
 | `IMemento<TSelf, TMemento>` interface | Yaf.Domain.Interfaces |
 | `IHydratable<TMemento>` interface | Yaf.Domain.Interfaces |
-| `Snapshot` / `Restore` / `Hydrate` methods | Domain objects (consumer-defined) |
+| `IHasIdentity` / `IHasIdentity<T>` interfaces | Yaf.Domain.Interfaces — non-generic base with `IdentityType`/`BoxedId`; generic adds `T Id` with DIM for the non-generic members |
+| `Snapshot` / `Restore` / `Hydrate` methods | Base classes handle Id automatically when `TMemento : IHasIdentity<T>` matches `TId : ITypedId<T>` — uses `BoxedValue`/`BoxedId` for transfer, `Activator.CreateInstance` for Id reconstruction, `TId.IdentityType` for type compatibility check; `*Core` methods are consumer-defined for subclass state |
 | Concrete memento types (DTOs) | Yaf.Infrastructure (consumer-defined) |
 | EF Core entity configuration for mementos | Yaf.Infrastructure (consumer-defined) |
 | Encryption of `[Encryptable]` properties | Yaf.Infrastructure |

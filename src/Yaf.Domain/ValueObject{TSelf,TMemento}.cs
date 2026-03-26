@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Yaf.Domain.Extensions;
 using Yaf.Domain.Interfaces;
 
 namespace Yaf.Domain;
@@ -6,7 +7,7 @@ namespace Yaf.Domain;
 /// <summary>
 /// Base record for value objects that support memento-based persistence.
 /// Concrete types must override <see cref="SnapshotCore"/>, <see cref="RestoreCore"/>,
-/// and <see cref="Validate"/>.
+/// and <see cref="GetValidationErrors"/>.
 /// </summary>
 /// <remarks>
 /// Properties must use <c>{ get; private set; }</c> — positional record parameters
@@ -14,7 +15,7 @@ namespace Yaf.Domain;
 /// </remarks>
 /// <typeparam name="TSelf">The concrete value object type (CRTP pattern).</typeparam>
 /// <typeparam name="TMemento">The memento contract — typically an interface at the domain level.</typeparam>
-public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSelf, TMemento>
+public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSelf, TMemento>, IValidatable
     where TSelf : ValueObject<TSelf, TMemento>
     where TMemento : class
 {
@@ -31,13 +32,7 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSel
         ArgumentNullException.ThrowIfNull(memento);
         var instance = (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
         instance.RestoreCore(memento);
-
-        var errors = instance.Validate();
-        if (errors.Count > 0)
-        {
-            throw new ValidationException(typeof(TSelf), errors);
-        }
-
+        instance.ThrowIfInvalid();
         return instance;
     }
 
@@ -58,5 +53,5 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSel
     /// Return an empty collection if the state is valid.
     /// </summary>
     /// <returns>A collection of validation errors, empty if valid.</returns>
-    protected abstract IReadOnlyCollection<IError> Validate();
+    public abstract IReadOnlyCollection<IError> GetValidationErrors();
 }

@@ -1,10 +1,22 @@
 namespace Yaf.Domain.Interfaces;
 
 /// <summary>
-/// Non-generic marker interface for strongly-typed identifiers.
-/// Used as a generic constraint on <c>Entity&lt;TId&gt;</c> to prevent raw primitive IDs.
+/// Non-generic base interface for strongly-typed identifiers.
+/// Provides runtime access to the backing value type and boxed value
+/// for cross-type identity operations.
 /// </summary>
-public interface ITypedId;
+public interface ITypedId
+{
+    /// <summary>
+    /// The <see cref="Type"/> of the backing value (e.g., <c>typeof(Guid)</c>).
+    /// </summary>
+    Type ValueType { get; }
+
+    /// <summary>
+    /// The backing value boxed as <see cref="object"/>.
+    /// </summary>
+    object BoxedValue { get; }
+}
 
 /// <summary>
 /// Generic interface for strongly-typed identifiers exposing the backing value.

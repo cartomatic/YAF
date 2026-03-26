@@ -12,5 +12,24 @@ namespace Yaf.Domain;
 /// to ensure proper equality semantics.
 /// </remarks>
 /// <typeparam name="T">The backing value type (typically <see cref="Guid"/>).</typeparam>
-public abstract record TypedId<T>(T Value) : ITypedId<T>
-    where T : IEquatable<T>;
+public abstract record TypedId<T> : ITypedId<T>
+    where T : IEquatable<T>
+{
+    /// <inheritdoc cref="ITypedId{T}.Value"/>
+    public T Value { get; }
+
+    /// <inheritdoc />
+    public Type ValueType => typeof(T);
+
+    /// <inheritdoc />
+    public object BoxedValue => Value!;
+
+    /// <summary>
+    /// Initializes a new instance of the typed identifier with the specified backing value.
+    /// </summary>
+    /// <param name="value">The backing value.</param>
+    protected TypedId(T value)
+    {
+        Value = value;
+    }
+}

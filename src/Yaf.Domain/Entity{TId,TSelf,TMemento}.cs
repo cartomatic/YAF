@@ -12,7 +12,7 @@ namespace Yaf.Domain;
 /// <para>
 /// When <typeparamref name="TMemento"/> implements <see cref="IHasIdentity{T}"/> with the same
 /// <c>T</c> as <typeparamref name="TId"/>'s <see cref="ITypedId{T}"/>, the base class handles
-/// identity snapshot, restore, and hydrate automatically via cached reflection.
+/// identity snapshot, restore, and hydrate automatically.
 /// The <c>*Core</c> template methods are for subclass-specific state only.
 /// </para>
 /// <para>
@@ -52,7 +52,12 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     public void Snapshot(TMemento memento)
     {
         ArgumentNullException.ThrowIfNull(memento);
-        MementoIdentityBridge<TId, TMemento>.WriteId?.Invoke(memento, Id);
+
+        if (memento is IHasIdentity hasIdentity)
+        {
+            hasIdentity.BoxedId = Id.BoxedValue;
+        }
+
         SnapshotCore(memento);
     }
 
@@ -62,9 +67,9 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
         ArgumentNullException.ThrowIfNull(memento);
         var instance = (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
 
-        if (MementoIdentityBridge<TId, TMemento>.ReadId is not null)
+        if (memento is IHasIdentity hasIdentity)
         {
-            instance.Id = MementoIdentityBridge<TId, TMemento>.ReadId(memento);
+            instance.Id = (TId)Activator.CreateInstance(typeof(TId), hasIdentity.BoxedId)!;
         }
 
         instance.RestoreCore(memento);
@@ -83,9 +88,9 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     {
         ArgumentNullException.ThrowIfNull(memento);
 
-        if (MementoIdentityBridge<TId, TMemento>.ReadId is not null)
+        if (memento is IHasIdentity hasIdentity)
         {
-            Id = MementoIdentityBridge<TId, TMemento>.ReadId(memento);
+            Id = (TId)Activator.CreateInstance(typeof(TId), hasIdentity.BoxedId)!;
         }
 
         HydrateCore(memento);

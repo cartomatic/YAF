@@ -33,10 +33,16 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     /// </summary>
     internal static (TId? id, bool success) ReadIdentity(TMemento memento)
     {
-        if (memento is IHasIdentity hasIdentity
-            && hasIdentity.IdentityType == TId.IdentityType
-            && _idFactory is not null)
+        if (memento is IHasIdentity hasIdentity && hasIdentity.IdentityType == TId.IdentityType)
         {
+            if (_idFactory is null)
+            {
+                throw new InvalidOperationException(
+                    $"{typeof(TId).Name} must have a public constructor accepting a single " +
+                    $"{TId.IdentityType.Name} parameter for automatic identity restoration. " +
+                    $"Use positional record syntax: record {typeof(TId).Name}({TId.IdentityType.Name} Value)");
+            }
+
             return (_idFactory(hasIdentity.BoxedId), true);
         }
 

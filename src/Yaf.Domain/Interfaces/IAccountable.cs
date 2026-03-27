@@ -14,7 +14,7 @@ namespace Yaf.Domain.Interfaces;
 /// Deletion tracking is a separate concern — see <see cref="ISoftDeletable{TActorId}"/>.
 /// </para>
 /// <para>
-/// Consumers handle accountability in their <c>SnapshotCore</c>/<c>RestoreCore</c>/<c>HydrateCore</c>
+/// Consumers handle accountability in their <c>SnapshotCore</c>/<c>HydrateCore</c>
 /// implementations, mapping between typed actor IDs and primitive memento values.
 /// </para>
 /// </remarks>

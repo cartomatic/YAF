@@ -26,7 +26,7 @@ namespace Yaf.Domain.Interfaces;
 /// </list>
 /// </para>
 /// <para>
-/// Consumers handle soft-delete fields in their <c>SnapshotCore</c>/<c>RestoreCore</c>/<c>HydrateCore</c>
+/// Consumers handle soft-delete fields in their <c>SnapshotCore</c>/<c>HydrateCore</c>
 /// implementations.
 /// </para>
 /// </remarks>

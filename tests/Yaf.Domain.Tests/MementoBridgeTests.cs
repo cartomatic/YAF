@@ -71,20 +71,15 @@ internal class Order :
         memento.TenantId = TenantId?.Value;
     }
 
-    protected override void RestoreCore(IOrderMemento memento)
+    protected override void HydrateCore(IOrderMemento memento)
     {
         Description = memento.Description;
         CreatedBy = memento.CreatedBy is { } cb ? new UserId(cb) : null;
         ModifiedBy = memento.ModifiedBy is { } mb ? new UserId(mb) : null;
-        CreatedAtUtc = memento.CreatedAtUtc;
-        ModifiedAtUtc = memento.ModifiedAtUtc;
         DeletedAtUtc = memento.DeletedAtUtc;
         DeletedBy = memento.DeletedBy is { } db ? new UserId(db) : null;
         TenantId = memento.TenantId is { } t ? new TenantId(t) : null!;
     }
-
-    protected override void HydrateCore(IOrderMemento memento) =>
-        RestoreCore(memento);
 
     public override IReadOnlyCollection<IError> GetValidationErrors() =>
         string.IsNullOrWhiteSpace(Description)
@@ -116,7 +111,6 @@ internal class PlainEntity : Entity<TestOrderId, PlainEntity, IPlainMemento>
     public static PlainEntity Create(TestOrderId id, string label) => new(id, label);
 
     protected override void SnapshotCore(IPlainMemento memento) => memento.Label = Label;
-    protected override void RestoreCore(IPlainMemento memento) => Label = memento.Label;
     protected override void HydrateCore(IPlainMemento memento) => Label = memento.Label;
     public override IReadOnlyCollection<IError> GetValidationErrors() => [];
 }

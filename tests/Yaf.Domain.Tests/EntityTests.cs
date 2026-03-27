@@ -153,12 +153,6 @@ public class EntityMementoTests
             memento.Price = Price;
         }
 
-        protected override void RestoreCore(IProductMemento memento)
-        {
-            Name = memento.Name;
-            Price = memento.Price;
-        }
-
         protected override void HydrateCore(IProductMemento memento)
         {
             Name = memento.Name;
@@ -307,12 +301,6 @@ public class EntityManualIdMementoTests
         {
             memento.Id = Id.Value;
             memento.Label = Label;
-        }
-
-        protected override void RestoreCore(IItemMemento memento)
-        {
-            Id = new ItemId(memento.Id!.Value);
-            Label = memento.Label;
         }
 
         protected override void HydrateCore(IItemMemento memento)

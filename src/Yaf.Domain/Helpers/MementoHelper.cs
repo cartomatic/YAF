@@ -9,7 +9,7 @@ namespace Yaf.Domain.Helpers;
 /// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> to avoid duplication.
 /// Handles identity bridging automatically. Cross-cutting concerns (accountability,
 /// timestamps, soft-delete, tenant) are handled by consumers in their
-/// <c>SnapshotCore</c>/<c>RestoreCore</c>/<c>HydrateCore</c> implementations.
+/// <c>SnapshotCore</c>/<c>HydrateCore</c> implementations.
 /// </summary>
 internal static class MementoHelper<TId, TSelf, TMemento>
     where TId : ITypedId

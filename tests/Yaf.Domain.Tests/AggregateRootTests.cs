@@ -143,12 +143,6 @@ public class AggregateRootMementoTests
             memento.Total = Total;
         }
 
-        protected override void RestoreCore(IInvoiceMemento memento)
-        {
-            Customer = memento.Customer;
-            Total = memento.Total;
-        }
-
         protected override void HydrateCore(IInvoiceMemento memento)
         {
             Customer = memento.Customer;

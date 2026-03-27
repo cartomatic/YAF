@@ -8,7 +8,7 @@ namespace Yaf.Domain.Interfaces;
 /// <para>
 /// Entity constructors or factory methods are responsible for accepting and setting
 /// <see cref="TenantId"/> at creation time. Consumers handle the tenant ID in their
-/// <c>SnapshotCore</c>/<c>RestoreCore</c>/<c>HydrateCore</c> implementations.
+/// <c>SnapshotCore</c>/<c>HydrateCore</c> implementations.
 /// </para>
 /// <para>
 /// The framework provides <see cref="Yaf.Domain.TenantId"/> as a convenience default,

@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-03-27
+
+### Added
+
+- `IAccountable` / `IAccountable<TActorId>` — domain-side accountability interfaces (CreatedBy?, ModifiedBy?); non-generic marker for runtime discovery, generic with typed actor ID
+- `ITimestamped` — domain-side timestamp interface (CreatedAtUtc?, ModifiedAtUtc?); both nullable, null = not yet persisted
+- `ISoftDeletable` / `ISoftDeletable<TActorId>` — domain-side soft-deletion interfaces (DeletedAtUtc?, DeletedBy?); standalone, composition over inheritance
+- `ITenantScoped` / `ITenantScoped<TTenantId>` — domain-side tenant context interfaces; non-generic marker, generic with typed tenant ID
+- `IHasAccountability` / `IHasAccountability<T>` — memento-side accountability with DIM pattern mirroring `IHasIdentity<T>`
+- `IHasTimestamps` — memento-side timestamps (get/set)
+- `IHasSoftDelete` / `IHasSoftDelete<T>` — memento-side soft-deletion with DIM pattern
+- `IHasTenantId` / `IHasTenantId<T>` — memento-side tenant identity with DIM pattern
+- `IHasVersionInfo` — memento-only optimistic concurrency token (Guid Version)
+- `IHasVersionHistory` — memento-only independent marker for version snapshots + graveyard
+- `TenantId` — framework-provided typed identifier (`TypedId<Guid>`)
+- Cross-cutting auto-handling in `MementoHelper`: compiled expression-tree property setters, `ConcurrentDictionary`-cached typed ID factories, graceful degradation when memento lacks matching interface
+- 24 new tests for cross-cutting concern round-trips, graceful degradation, backward compatibility
+
+### Changed
+
+- `Entity<TId, TSelf, TMemento>` — Snapshot/Restore/Hydrate now auto-handle accountability, timestamps, soft-delete, and tenant
+- `AggregateRoot<TId, TSelf, TMemento>` — same auto-handling as Entity
+- ADR: Cross-Cutting Infrastructure — added `ISoftDeletable`, renamed `IVersionable` to `IHasVersionHistory` (independent marker), updated deletion lifecycle to exclusive-paths model, clarified `IHasVersionInfo` as memento-only
+
 ## 2026-03-26
 
 ### Added

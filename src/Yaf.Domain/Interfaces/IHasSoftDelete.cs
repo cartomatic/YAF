@@ -38,9 +38,9 @@ public interface IHasSoftDelete<T> : IHasSoftDelete
     where T : IEquatable<T>
 {
     /// <summary>
-    /// The deleter's identity value. <see langword="null"/> if not deleted.
+    /// The deleter's identity value. <c>default</c> if not deleted.
     /// </summary>
-    T? DeletedBy { get; set; }
+    T DeletedBy { get; set; }
 
     /// <inheritdoc />
     Type? IHasSoftDelete.ActorIdType => typeof(T);
@@ -50,7 +50,7 @@ public interface IHasSoftDelete<T> : IHasSoftDelete
     {
         get => DeletedBy;
         set => DeletedBy = value is null
-            ? default
+            ? default!
             : value is T typed
                 ? typed
                 : throw new ArgumentException(

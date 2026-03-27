@@ -34,14 +34,14 @@ public interface IHasAccountability<T> : IHasAccountability
     where T : IEquatable<T>
 {
     /// <summary>
-    /// The creator's identity value. <see langword="null"/> before first persistence.
+    /// The creator's identity value. <c>default</c> before first persistence.
     /// </summary>
-    T? CreatedBy { get; set; }
+    T CreatedBy { get; set; }
 
     /// <summary>
-    /// The last modifier's identity value. <see langword="null"/> until first modification.
+    /// The last modifier's identity value. <c>default</c> until first modification.
     /// </summary>
-    T? ModifiedBy { get; set; }
+    T ModifiedBy { get; set; }
 
     /// <inheritdoc />
     Type IHasAccountability.ActorIdType => typeof(T);
@@ -51,7 +51,7 @@ public interface IHasAccountability<T> : IHasAccountability
     {
         get => CreatedBy;
         set => CreatedBy = value is null
-            ? default
+            ? default!
             : value is T typed
                 ? typed
                 : throw new ArgumentException(
@@ -64,7 +64,7 @@ public interface IHasAccountability<T> : IHasAccountability
     {
         get => ModifiedBy;
         set => ModifiedBy = value is null
-            ? default
+            ? default!
             : value is T typed
                 ? typed
                 : throw new ArgumentException(

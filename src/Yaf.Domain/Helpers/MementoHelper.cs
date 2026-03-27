@@ -48,6 +48,11 @@ internal static class MementoHelper<TId, TSelf, TMemento>
                     $"Use positional record syntax: record {typeof(TId).Name}({TId.IdentityType.Name} Value)");
             }
 
+            if (hasIdentity.BoxedId is null)
+            {
+                return (default, true);
+            }
+
             return (_idFactory(hasIdentity.BoxedId), true);
         }
 
@@ -309,8 +314,8 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 
             return (entity, boxedCreatedBy, boxedModifiedBy) =>
             {
-                createdBySetter(entity, IsDefaultOrNull(boxedCreatedBy) ? null : factory(boxedCreatedBy!));
-                modifiedBySetter(entity, IsDefaultOrNull(boxedModifiedBy) ? null : factory(boxedModifiedBy!));
+                createdBySetter(entity, IsNull(boxedCreatedBy) ? null : factory(boxedCreatedBy!));
+                modifiedBySetter(entity, IsNull(boxedModifiedBy) ? null : factory(boxedModifiedBy!));
             };
         }
 
@@ -362,7 +367,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             return (entity, deletedAtUtc, boxedDeletedBy) =>
             {
                 deletedAtSetter(entity, deletedAtUtc);
-                deletedBySetter(entity, IsDefaultOrNull(boxedDeletedBy) ? null : factory(boxedDeletedBy!));
+                deletedBySetter(entity, IsNull(boxedDeletedBy) ? null : factory(boxedDeletedBy!));
             };
         }
 
@@ -464,13 +469,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             return Expression.Lambda<Action<TSelf, object?>>(call, entityParam, valueParam).Compile();
         }
 
-        /// <summary>
-        /// Returns <c>true</c> if the boxed value is <c>null</c> or the default value for its type
-        /// (e.g., <c>Guid.Empty</c> for <see cref="Guid"/>). Used to distinguish "not set" from
-        /// "explicitly set" on value-type memento properties that cannot be nullable.
-        /// </summary>
-        private static bool IsDefaultOrNull(object? value) =>
-            value is null || value.Equals(Activator.CreateInstance(value.GetType()));
+        private static bool IsNull(object? value) => value is null;
 
         private static InvalidOperationException MissingPropertyError(Type entityType, string propertyName) =>
             new($"{entityType.Name} implements a cross-cutting interface but is missing " +

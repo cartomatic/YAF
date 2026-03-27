@@ -18,8 +18,9 @@ public interface IHasTenantId
 
     /// <summary>
     /// The tenant identity value boxed as <see cref="object"/>.
+    /// <see langword="null"/> when the tenant has not been set.
     /// </summary>
-    object BoxedTenantId { get; set; }
+    object? BoxedTenantId { get; set; }
 }
 
 /// <summary>
@@ -28,24 +29,26 @@ public interface IHasTenantId
 /// </summary>
 /// <typeparam name="T">The backing value type of the tenant identity (e.g., <see cref="Guid"/>).</typeparam>
 public interface IHasTenantId<T> : IHasTenantId
-    where T : IEquatable<T>
+    where T : struct, IEquatable<T>
 {
     /// <summary>
-    /// The tenant identity value. Maps to the entity's tenant typed ID value.
+    /// The tenant identity value. <see langword="null"/> when the tenant has not been set.
     /// </summary>
-    T TenantId { get; set; }
+    T? TenantId { get; set; }
 
     /// <inheritdoc />
     Type IHasTenantId.TenantIdType => typeof(T);
 
     /// <inheritdoc />
-    object IHasTenantId.BoxedTenantId
+    object? IHasTenantId.BoxedTenantId
     {
-        get => TenantId!;
-        set => TenantId = value is T typed
-            ? typed
-            : throw new ArgumentException(
-                $"Expected {typeof(T).Name}, got {value?.GetType().Name ?? "null"}.",
-                nameof(value));
+        get => TenantId;
+        set => TenantId = value switch
+        {
+            null => null,
+            T typed => typed,
+            _ => throw new ArgumentException(
+                $"Expected {typeof(T).Name}, got {value.GetType().Name}.", nameof(value))
+        };
     }
 }

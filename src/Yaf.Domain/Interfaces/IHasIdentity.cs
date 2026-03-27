@@ -14,8 +14,9 @@ public interface IHasIdentity
 
     /// <summary>
     /// The identity value boxed as <see cref="object"/>.
+    /// <see langword="null"/> when the identity has not been set.
     /// </summary>
-    object BoxedId { get; set; }
+    object? BoxedId { get; set; }
 }
 
 /// <summary>
@@ -24,22 +25,26 @@ public interface IHasIdentity
 /// </summary>
 /// <typeparam name="T">The backing value type of the identity (e.g., <see cref="Guid"/>).</typeparam>
 public interface IHasIdentity<T> : IHasIdentity
-    where T : IEquatable<T>
+    where T : struct, IEquatable<T>
 {
     /// <summary>
-    /// The identity value. Maps to the entity's <c>TypedId&lt;T&gt;.Value</c> in the domain layer.
+    /// The identity value. <see langword="null"/> when the identity has not been set.
     /// </summary>
-    T Id { get; set; }
+    T? Id { get; set; }
 
     /// <inheritdoc />
     Type IHasIdentity.IdentityType => typeof(T);
 
     /// <inheritdoc />
-    object IHasIdentity.BoxedId
+    object? IHasIdentity.BoxedId
     {
-        get => Id!;
-        set => Id = value is T typed
-            ? typed
-            : throw new ArgumentException($"Expected {typeof(T).Name}, got {value?.GetType().Name ?? "null"}.", nameof(value));
+        get => Id;
+        set => Id = value switch
+        {
+            null => null,
+            T typed => typed,
+            _ => throw new ArgumentException(
+                $"Expected {typeof(T).Name}, got {value.GetType().Name}.", nameof(value))
+        };
     }
 }

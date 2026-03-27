@@ -23,14 +23,14 @@ internal interface IOrderMemento :
 
 internal class OrderMemento : IOrderMemento
 {
-    public Guid Id { get; set; }
-    public Guid CreatedBy { get; set; }
-    public Guid ModifiedBy { get; set; }
+    public Guid? Id { get; set; }
+    public Guid? CreatedBy { get; set; }
+    public Guid? ModifiedBy { get; set; }
     public DateTimeOffset? CreatedAtUtc { get; set; }
     public DateTimeOffset? ModifiedAtUtc { get; set; }
     public DateTimeOffset? DeletedAtUtc { get; set; }
-    public Guid DeletedBy { get; set; }
-    public Guid TenantId { get; set; }
+    public Guid? DeletedBy { get; set; }
+    public Guid? TenantId { get; set; }
     public string Description { get; set; } = string.Empty;
 }
 
@@ -85,7 +85,7 @@ internal interface ISimpleMemento : IHasIdentity<Guid>, IHasTimestamps
 
 internal class SimpleMemento : ISimpleMemento
 {
-    public Guid Id { get; set; }
+    public Guid? Id { get; set; }
     public DateTimeOffset? CreatedAtUtc { get; set; }
     public DateTimeOffset? ModifiedAtUtc { get; set; }
     public string Value { get; set; } = string.Empty;
@@ -118,9 +118,9 @@ internal interface IStandaloneDeleteMemento : IHasIdentity<Guid>, IHasSoftDelete
 
 internal class StandaloneDeleteMemento : IStandaloneDeleteMemento
 {
-    public Guid Id { get; set; }
+    public Guid? Id { get; set; }
     public DateTimeOffset? DeletedAtUtc { get; set; }
-    public Guid DeletedBy { get; set; }
+    public Guid? DeletedBy { get; set; }
     public string Name { get; set; } = string.Empty;
 }
 
@@ -151,7 +151,7 @@ internal interface IPlainMemento : IHasIdentity<Guid>
 
 internal class PlainMemento : IPlainMemento
 {
-    public Guid Id { get; set; }
+    public Guid? Id { get; set; }
     public string Label { get; set; } = string.Empty;
 }
 
@@ -178,7 +178,7 @@ internal interface IMismatchMemento : IHasIdentity<Guid>
 
 internal class MismatchMemento : IMismatchMemento
 {
-    public Guid Id { get; set; }
+    public Guid? Id { get; set; }
     public string Data { get; set; } = string.Empty;
 }
 
@@ -218,7 +218,7 @@ public class AccountabilityTests
         order.Snapshot(memento);
 
         memento.CreatedBy.Should().Be(userId.Value);
-        memento.ModifiedBy.Should().Be(default(Guid));
+        memento.ModifiedBy.Should().BeNull();
     }
 
     [Fact]

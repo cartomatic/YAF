@@ -35,12 +35,12 @@ public interface IHasSoftDelete
 /// </summary>
 /// <typeparam name="T">The backing value type of the actor identity (e.g., <see cref="Guid"/>).</typeparam>
 public interface IHasSoftDelete<T> : IHasSoftDelete
-    where T : IEquatable<T>
+    where T : struct, IEquatable<T>
 {
     /// <summary>
-    /// The deleter's identity value. <c>default</c> if not deleted.
+    /// The deleter's identity value. <see langword="null"/> if not deleted.
     /// </summary>
-    T DeletedBy { get; set; }
+    T? DeletedBy { get; set; }
 
     /// <inheritdoc />
     Type? IHasSoftDelete.ActorIdType => typeof(T);
@@ -49,12 +49,12 @@ public interface IHasSoftDelete<T> : IHasSoftDelete
     object? IHasSoftDelete.BoxedDeletedBy
     {
         get => DeletedBy;
-        set => DeletedBy = value is null
-            ? default!
-            : value is T typed
-                ? typed
-                : throw new ArgumentException(
-                    $"Expected {typeof(T).Name}, got {value.GetType().Name}.",
-                    nameof(value));
+        set => DeletedBy = value switch
+        {
+            null => null,
+            T typed => typed,
+            _ => throw new ArgumentException(
+                $"Expected {typeof(T).Name}, got {value.GetType().Name}.", nameof(value))
+        };
     }
 }

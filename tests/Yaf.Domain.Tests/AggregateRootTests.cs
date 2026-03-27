@@ -114,7 +114,7 @@ public class AggregateRootMementoTests
 
     private class InvoiceMemento : IInvoiceMemento
     {
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
         public string Customer { get; set; } = string.Empty;
         public decimal Total { get; set; }
     }

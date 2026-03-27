@@ -22,41 +22,37 @@ internal static class ReflectionHelper
             i => i.IsGenericType && i.GetGenericTypeDefinition() == openGenericInterface);
 
     /// <summary>
-    /// Builds a compiled reader that extracts the <see cref="ITypedId.BoxedValue"/> from a typed ID
-    /// property on an entity. Returns <see langword="null"/> if the property value is null.
+    /// Builds a compiled reader for a property on <typeparamref name="TEntity"/>.
+    /// If the property type implements <see cref="ITypedId"/>, extracts <see cref="ITypedId.BoxedValue"/>
+    /// (returning <see langword="null"/> when the property is null).
+    /// Otherwise, returns the value boxed as <see cref="object"/>.
     /// </summary>
-    internal static Func<TEntity, object?> BuildTypedIdReader<TEntity>(Type entityType, string propertyName)
+    internal static Func<TEntity, object?> BuildPropertyReader<TEntity>(string propertyName)
     {
+        var entityType = typeof(TEntity);
         var prop = entityType.GetProperty(propertyName)
             ?? throw MissingPropertyError(entityType, propertyName);
 
-        var entityParam = Expression.Parameter(typeof(TEntity), "entity");
-        var body = BuildBoxedValueExtractor(entityParam, prop);
+        var entityParam = Expression.Parameter(entityType, "entity");
+
+        Expression body = IsTypedIdProperty(prop)
+            ? BuildBoxedValueExtractor(entityParam, prop)
+            : Expression.Convert(Expression.Property(entityParam, prop), typeof(object));
 
         return Expression.Lambda<Func<TEntity, object?>>(body, entityParam).Compile();
     }
 
     /// <summary>
-    /// Builds a compiled writer that reconstructs a typed ID from a boxed primitive value
-    /// and sets it on the entity. <see langword="null"/> input sets the property to null.
-    /// </summary>
-    internal static Action<TEntity, object?> BuildTypedIdWriter<TEntity>(
-        Type entityType, string propertyName, Type typedIdType)
-    {
-        var setter = BuildPropertySetter<TEntity>(entityType, propertyName);
-        var factory = TypedIdFactoryCache.GetOrBuild(typedIdType);
-
-        return (entity, boxedValue) =>
-            setter(entity, boxedValue is null ? null : factory(boxedValue));
-    }
-
-    /// <summary>
-    /// Builds a compiled writer for a property on the entity from a boxed value.
-    /// Handles both value types (via coalesce to default) and reference types.
+    /// Builds a compiled writer for a property on <typeparamref name="TEntity"/> from a boxed value.
+    /// If the property type implements <see cref="ITypedId"/>, reconstructs the typed ID from
+    /// the boxed primitive via a cached compiled factory. <see langword="null"/> input sets the
+    /// property to null.
+    /// Otherwise, sets the value directly (handling value-type coalescing to default).
     /// Throws if the property lacks a setter.
     /// </summary>
-    internal static Action<TEntity, object?> BuildPropertySetter<TEntity>(Type entityType, string propertyName)
+    internal static Action<TEntity, object?> BuildPropertyWriter<TEntity>(string propertyName)
     {
+        var entityType = typeof(TEntity);
         var prop = entityType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
             ?? throw MissingPropertyError(entityType, propertyName);
 
@@ -66,33 +62,33 @@ internal static class ReflectionHelper
                 $"for automatic memento handling. Add a private setter or handle {propertyName} " +
                 $"manually in SnapshotCore/RestoreCore/HydrateCore.");
 
-        var entityParam = Expression.Parameter(typeof(TEntity), "entity");
-        var valueParam = Expression.Parameter(typeof(object), "value");
+        var rawSetter = CompilePropertySetter<TEntity>(entityType, prop, setter);
 
-        var convertedValue = prop.PropertyType.IsValueType
-            ? Expression.Convert(
-                Expression.Coalesce(valueParam, Expression.Default(prop.PropertyType)),
-                prop.PropertyType)
-            : Expression.Convert(valueParam, prop.PropertyType);
+        var typedIdType = GetTypedIdType(prop);
+        if (typedIdType is null)
+        {
+            return rawSetter;
+        }
 
-        var call = Expression.Call(entityParam, setter, convertedValue);
-        return Expression.Lambda<Action<TEntity, object?>>(call, entityParam, valueParam).Compile();
+        var factory = TypedIdFactoryCache.GetOrBuild(typedIdType);
+        return (entity, boxedValue) =>
+            rawSetter(entity, boxedValue is null ? null : factory(boxedValue));
     }
 
     /// <summary>
-    /// Builds a compiled reader for a plain (non-typed-ID) property on an entity.
-    /// Returns the value boxed as <see cref="object"/>?.
+    /// Determines whether a property's type implements <see cref="ITypedId"/>.
     /// </summary>
-    internal static Func<TEntity, object?> BuildPropertyReader<TEntity>(Type entityType, string propertyName)
+    private static bool IsTypedIdProperty(PropertyInfo prop) =>
+        GetTypedIdType(prop) is not null;
+
+    /// <summary>
+    /// Returns the concrete <see cref="ITypedId"/> type for a property, or <see langword="null"/>
+    /// if the property type does not implement it.
+    /// </summary>
+    private static Type? GetTypedIdType(PropertyInfo prop)
     {
-        var prop = entityType.GetProperty(propertyName)
-            ?? throw MissingPropertyError(entityType, propertyName);
-
-        var entityParam = Expression.Parameter(typeof(TEntity), "entity");
-        var propAccess = Expression.Property(entityParam, prop);
-        var body = Expression.Convert(propAccess, typeof(object));
-
-        return Expression.Lambda<Func<TEntity, object?>>(body, entityParam).Compile();
+        var type = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+        return typeof(ITypedId).IsAssignableFrom(type) ? type : null;
     }
 
     /// <summary>
@@ -116,6 +112,25 @@ internal static class ReflectionHelper
 
         var directCast = Expression.Convert(propAccess, typeof(ITypedId));
         return Expression.Convert(Expression.Property(directCast, boxedValueProp), typeof(object));
+    }
+
+    /// <summary>
+    /// Compiles a raw property setter as <c>Action&lt;TEntity, object?&gt;</c>.
+    /// </summary>
+    private static Action<TEntity, object?> CompilePropertySetter<TEntity>(
+        Type entityType, PropertyInfo prop, MethodInfo setter)
+    {
+        var entityParam = Expression.Parameter(entityType, "entity");
+        var valueParam = Expression.Parameter(typeof(object), "value");
+
+        var convertedValue = prop.PropertyType.IsValueType
+            ? Expression.Convert(
+                Expression.Coalesce(valueParam, Expression.Default(prop.PropertyType)),
+                prop.PropertyType)
+            : Expression.Convert(valueParam, prop.PropertyType);
+
+        var call = Expression.Call(entityParam, setter, convertedValue);
+        return Expression.Lambda<Action<TEntity, object?>>(call, entityParam, valueParam).Compile();
     }
 
     private static InvalidOperationException MissingPropertyError(Type entityType, string propertyName) =>

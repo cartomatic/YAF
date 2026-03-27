@@ -229,30 +229,26 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             var handlers = new CrossCuttingHandlers();
             var entityType = typeof(TSelf);
 
-            if (typeof(IAccountable).IsAssignableFrom(entityType))
+            if (typeof(IAccountable).IsAssignableFrom(entityType)
+                && ReflectionHelper.FindGenericInterface(entityType, typeof(IAccountable<>)) is not null)
             {
-                var genericInterface = ReflectionHelper.FindGenericInterface(entityType, typeof(IAccountable<>));
-                if (genericInterface is not null)
-                {
-                    var actorIdType = genericInterface.GetGenericArguments()[0];
-                    var readCreatedBy = ReflectionHelper.BuildTypedIdReader<TSelf>(entityType, nameof(IHasAccountability<Guid>.CreatedBy));
-                    var readModifiedBy = ReflectionHelper.BuildTypedIdReader<TSelf>(entityType, nameof(IHasAccountability<Guid>.ModifiedBy));
-                    handlers.AccountabilityReader = entity => (readCreatedBy(entity), readModifiedBy(entity));
+                var readCreatedBy = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasAccountability<Guid>.CreatedBy));
+                var readModifiedBy = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasAccountability<Guid>.ModifiedBy));
+                handlers.AccountabilityReader = entity => (readCreatedBy(entity), readModifiedBy(entity));
 
-                    var writeCreatedBy = ReflectionHelper.BuildTypedIdWriter<TSelf>(entityType, nameof(IHasAccountability<Guid>.CreatedBy), actorIdType);
-                    var writeModifiedBy = ReflectionHelper.BuildTypedIdWriter<TSelf>(entityType, nameof(IHasAccountability<Guid>.ModifiedBy), actorIdType);
-                    handlers.AccountabilityWriter = (entity, boxedCreatedBy, boxedModifiedBy) =>
-                    {
-                        writeCreatedBy(entity, boxedCreatedBy);
-                        writeModifiedBy(entity, boxedModifiedBy);
-                    };
-                }
+                var writeCreatedBy = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasAccountability<Guid>.CreatedBy));
+                var writeModifiedBy = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasAccountability<Guid>.ModifiedBy));
+                handlers.AccountabilityWriter = (entity, boxedCreatedBy, boxedModifiedBy) =>
+                {
+                    writeCreatedBy(entity, boxedCreatedBy);
+                    writeModifiedBy(entity, boxedModifiedBy);
+                };
             }
 
             if (typeof(ITimestamped).IsAssignableFrom(entityType))
             {
-                var writeCreatedAt = ReflectionHelper.BuildPropertySetter<TSelf>(entityType, nameof(ITimestamped.CreatedAtUtc));
-                var writeModifiedAt = ReflectionHelper.BuildPropertySetter<TSelf>(entityType, nameof(ITimestamped.ModifiedAtUtc));
+                var writeCreatedAt = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(ITimestamped.CreatedAtUtc));
+                var writeModifiedAt = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(ITimestamped.ModifiedAtUtc));
                 handlers.TimestampWriter = (entity, createdAtUtc, modifiedAtUtc) =>
                 {
                     writeCreatedAt(entity, createdAtUtc);
@@ -260,35 +256,27 @@ internal static class MementoHelper<TId, TSelf, TMemento>
                 };
             }
 
-            if (typeof(ISoftDeletable).IsAssignableFrom(entityType))
+            if (typeof(ISoftDeletable).IsAssignableFrom(entityType)
+                && ReflectionHelper.FindGenericInterface(entityType, typeof(ISoftDeletable<>)) is not null)
             {
-                var genericInterface = ReflectionHelper.FindGenericInterface(entityType, typeof(ISoftDeletable<>));
-                if (genericInterface is not null)
-                {
-                    var actorIdType = genericInterface.GetGenericArguments()[0];
-                    var readDeletedAt = ReflectionHelper.BuildPropertyReader<TSelf>(entityType, nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
-                    var readDeletedBy = ReflectionHelper.BuildTypedIdReader<TSelf>(entityType, nameof(IHasSoftDelete<Guid>.DeletedBy));
-                    handlers.SoftDeleteReader = entity => ((DateTimeOffset?)readDeletedAt(entity), readDeletedBy(entity));
+                var readDeletedAt = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
+                var readDeletedBy = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedBy));
+                handlers.SoftDeleteReader = entity => ((DateTimeOffset?)readDeletedAt(entity), readDeletedBy(entity));
 
-                    var writeDeletedAt = ReflectionHelper.BuildPropertySetter<TSelf>(entityType, nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
-                    var writeDeletedBy = ReflectionHelper.BuildTypedIdWriter<TSelf>(entityType, nameof(IHasSoftDelete<Guid>.DeletedBy), actorIdType);
-                    handlers.SoftDeleteWriter = (entity, deletedAtUtc, boxedDeletedBy) =>
-                    {
-                        writeDeletedAt(entity, deletedAtUtc);
-                        writeDeletedBy(entity, boxedDeletedBy);
-                    };
-                }
+                var writeDeletedAt = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
+                var writeDeletedBy = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedBy));
+                handlers.SoftDeleteWriter = (entity, deletedAtUtc, boxedDeletedBy) =>
+                {
+                    writeDeletedAt(entity, deletedAtUtc);
+                    writeDeletedBy(entity, boxedDeletedBy);
+                };
             }
 
-            if (typeof(ITenantScoped).IsAssignableFrom(entityType))
+            if (typeof(ITenantScoped).IsAssignableFrom(entityType)
+                && ReflectionHelper.FindGenericInterface(entityType, typeof(ITenantScoped<>)) is not null)
             {
-                var genericInterface = ReflectionHelper.FindGenericInterface(entityType, typeof(ITenantScoped<>));
-                if (genericInterface is not null)
-                {
-                    var tenantIdType = genericInterface.GetGenericArguments()[0];
-                    handlers.TenantReader = ReflectionHelper.BuildTypedIdReader<TSelf>(entityType, nameof(IHasTenantId<Guid>.TenantId));
-                    handlers.TenantWriter = ReflectionHelper.BuildTypedIdWriter<TSelf>(entityType, nameof(IHasTenantId<Guid>.TenantId), tenantIdType);
-                }
+                handlers.TenantReader = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasTenantId<Guid>.TenantId));
+                handlers.TenantWriter = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasTenantId<Guid>.TenantId));
             }
 
             return handlers;

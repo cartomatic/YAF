@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Yaf.Domain.Interfaces;
@@ -70,8 +71,8 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             return;
 
         var (createdBy, modifiedBy) = handlers.AccountabilityReader(entity);
-        hasAccountability.BoxedCreatedBy = createdBy;
-        hasAccountability.BoxedModifiedBy = modifiedBy;
+        hasAccountability.BoxedCreatedBy = ExtractPrimitive(createdBy);
+        hasAccountability.BoxedModifiedBy = ExtractPrimitive(modifiedBy);
     }
 
     /// <summary>
@@ -86,7 +87,9 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         if (handlers.AccountabilityWriter is null)
             return;
 
-        handlers.AccountabilityWriter(entity, hasAccountability.BoxedCreatedBy, hasAccountability.BoxedModifiedBy);
+        var createdBy = ReconstructTypedId(hasAccountability.BoxedCreatedBy, handlers.ActorIdFactory);
+        var modifiedBy = ReconstructTypedId(hasAccountability.BoxedModifiedBy, handlers.ActorIdFactory);
+        handlers.AccountabilityWriter(entity, createdBy, modifiedBy);
     }
 
     /// <summary>
@@ -127,7 +130,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 
         var (deletedAtUtc, deletedBy) = handlers.SoftDeleteReader(entity);
         hasSoftDelete.DeletedAtUtc = deletedAtUtc;
-        hasSoftDelete.BoxedDeletedBy = deletedBy;
+        hasSoftDelete.BoxedDeletedBy = ExtractPrimitive(deletedBy);
     }
 
     /// <summary>
@@ -139,7 +142,11 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             return;
 
         var handlers = EnsureHandlers();
-        handlers.SoftDeleteWriter?.Invoke(entity, hasSoftDelete.DeletedAtUtc, hasSoftDelete.BoxedDeletedBy);
+        if (handlers.SoftDeleteWriter is null)
+            return;
+
+        var deletedBy = ReconstructTypedId(hasSoftDelete.BoxedDeletedBy, handlers.DeleteActorIdFactory);
+        handlers.SoftDeleteWriter(entity, hasSoftDelete.DeletedAtUtc, deletedBy);
     }
 
     /// <summary>
@@ -154,11 +161,8 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         if (handlers.TenantReader is null)
             return;
 
-        var tenantBoxed = handlers.TenantReader(entity);
-        if (tenantBoxed is not null)
-        {
-            hasTenantId.BoxedTenantId = tenantBoxed;
-        }
+        var tenantId = handlers.TenantReader(entity);
+        hasTenantId.BoxedTenantId = ExtractPrimitive(tenantId);
     }
 
     /// <summary>
@@ -170,7 +174,11 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             return;
 
         var handlers = EnsureHandlers();
-        handlers.TenantWriter?.Invoke(entity, hasTenantId.BoxedTenantId);
+        if (handlers.TenantWriter is null)
+            return;
+
+        var tenantId = ReconstructTypedId(hasTenantId.BoxedTenantId, handlers.TenantIdFactory);
+        handlers.TenantWriter(entity, tenantId);
     }
 
     /// <summary>
@@ -181,6 +189,20 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 
     private static CrossCuttingHandlers EnsureHandlers() =>
         _handlers ??= CrossCuttingHandlers.Build();
+
+    /// <summary>
+    /// Extracts the primitive backing value from a typed ID, or returns the value as-is
+    /// if it is not a typed ID.
+    /// </summary>
+    private static object? ExtractPrimitive(object? value) =>
+        value is ITypedId typedId ? typedId.BoxedValue : value;
+
+    /// <summary>
+    /// Reconstructs a typed ID from a boxed primitive value using the given factory.
+    /// Returns <see langword="null"/> if the input is null or the factory is null.
+    /// </summary>
+    private static object? ReconstructTypedId(object? boxedPrimitive, Func<object, object>? factory) =>
+        boxedPrimitive is null || factory is null ? null : factory(boxedPrimitive);
 
     private static Func<object, TId>? BuildIdFactory()
     {
@@ -203,26 +225,19 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     /// </summary>
     private sealed class CrossCuttingHandlers
     {
-        // Accountability: entity -> (boxedCreatedBy, boxedModifiedBy)
         internal Func<TSelf, (object?, object?)>? AccountabilityReader;
-
-        // Accountability: (entity, boxedCreatedBy, boxedModifiedBy) -> void
         internal Action<TSelf, object?, object?>? AccountabilityWriter;
+        internal Func<object, object>? ActorIdFactory;
 
-        // Timestamps: (entity, createdAtUtc, modifiedAtUtc) -> void
         internal Action<TSelf, DateTimeOffset?, DateTimeOffset?>? TimestampWriter;
 
-        // SoftDelete: entity -> (deletedAtUtc, boxedDeletedBy)
         internal Func<TSelf, (DateTimeOffset?, object?)>? SoftDeleteReader;
-
-        // SoftDelete: (entity, deletedAtUtc, boxedDeletedBy) -> void
         internal Action<TSelf, DateTimeOffset?, object?>? SoftDeleteWriter;
+        internal Func<object, object>? DeleteActorIdFactory;
 
-        // Tenant: entity -> boxedTenantId
         internal Func<TSelf, object?>? TenantReader;
-
-        // Tenant: (entity, boxedTenantId) -> void
         internal Action<TSelf, object?>? TenantWriter;
+        internal Func<object, object>? TenantIdFactory;
 
         internal static CrossCuttingHandlers Build()
         {
@@ -230,7 +245,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             var entityType = typeof(TSelf);
 
             if (typeof(IAccountable).IsAssignableFrom(entityType)
-                && ReflectionHelper.FindGenericInterface(entityType, typeof(IAccountable<>)) is not null)
+                && ReflectionHelper.FindGenericInterface(entityType, typeof(IAccountable<>)) is { } accountableInterface)
             {
                 var readCreatedBy = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasAccountability<Guid>.CreatedBy));
                 var readModifiedBy = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasAccountability<Guid>.ModifiedBy));
@@ -238,11 +253,13 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 
                 var writeCreatedBy = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasAccountability<Guid>.CreatedBy));
                 var writeModifiedBy = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasAccountability<Guid>.ModifiedBy));
-                handlers.AccountabilityWriter = (entity, boxedCreatedBy, boxedModifiedBy) =>
+                handlers.AccountabilityWriter = (entity, createdBy, modifiedBy) =>
                 {
-                    writeCreatedBy(entity, boxedCreatedBy);
-                    writeModifiedBy(entity, boxedModifiedBy);
+                    writeCreatedBy(entity, createdBy);
+                    writeModifiedBy(entity, modifiedBy);
                 };
+
+                handlers.ActorIdFactory = TypedIdFactoryCache.GetOrBuild(accountableInterface.GetGenericArguments()[0]);
             }
 
             if (typeof(ITimestamped).IsAssignableFrom(entityType))
@@ -257,7 +274,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             }
 
             if (typeof(ISoftDeletable).IsAssignableFrom(entityType)
-                && ReflectionHelper.FindGenericInterface(entityType, typeof(ISoftDeletable<>)) is not null)
+                && ReflectionHelper.FindGenericInterface(entityType, typeof(ISoftDeletable<>)) is { } softDeletableInterface)
             {
                 var readDeletedAt = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
                 var readDeletedBy = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedBy));
@@ -265,21 +282,54 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 
                 var writeDeletedAt = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
                 var writeDeletedBy = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedBy));
-                handlers.SoftDeleteWriter = (entity, deletedAtUtc, boxedDeletedBy) =>
+                handlers.SoftDeleteWriter = (entity, deletedAtUtc, deletedBy) =>
                 {
                     writeDeletedAt(entity, deletedAtUtc);
-                    writeDeletedBy(entity, boxedDeletedBy);
+                    writeDeletedBy(entity, deletedBy);
                 };
+
+                handlers.DeleteActorIdFactory = TypedIdFactoryCache.GetOrBuild(softDeletableInterface.GetGenericArguments()[0]);
             }
 
             if (typeof(ITenantScoped).IsAssignableFrom(entityType)
-                && ReflectionHelper.FindGenericInterface(entityType, typeof(ITenantScoped<>)) is not null)
+                && ReflectionHelper.FindGenericInterface(entityType, typeof(ITenantScoped<>)) is { } tenantScopedInterface)
             {
                 handlers.TenantReader = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasTenantId<Guid>.TenantId));
                 handlers.TenantWriter = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasTenantId<Guid>.TenantId));
+                handlers.TenantIdFactory = TypedIdFactoryCache.GetOrBuild(tenantScopedInterface.GetGenericArguments()[0]);
             }
 
             return handlers;
         }
+    }
+
+    /// <summary>
+    /// Shared cache of compiled typed ID constructor delegates.
+    /// Keyed by the concrete typed ID type. Thread-safe.
+    /// </summary>
+    private static class TypedIdFactoryCache
+    {
+        private static readonly ConcurrentDictionary<Type, Func<object, object>> _cache = new();
+
+        internal static Func<object, object> GetOrBuild(Type typedIdType) =>
+            _cache.GetOrAdd(typedIdType, static type =>
+            {
+                var typedIdGeneric = ReflectionHelper.FindGenericInterface(type, typeof(ITypedId<>))
+                    ?? throw new InvalidOperationException(
+                        $"{type.Name} implements ITypedId but does not implement ITypedId<T>.");
+
+                var backingType = typedIdGeneric.GetGenericArguments()[0];
+
+                var constructor = type.GetConstructor([backingType])
+                    ?? throw new InvalidOperationException(
+                        $"{type.Name} must have a public constructor accepting a single " +
+                        $"{backingType.Name} parameter. " +
+                        $"Use positional record syntax: record {type.Name}({backingType.Name} Value)");
+
+                var param = Expression.Parameter(typeof(object), "value");
+                var body = Expression.New(constructor, Expression.Convert(param, backingType));
+                var converted = Expression.Convert(body, typeof(object));
+                return Expression.Lambda<Func<object, object>>(converted, param).Compile();
+            });
     }
 }

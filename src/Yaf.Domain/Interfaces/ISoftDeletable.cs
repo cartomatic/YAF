@@ -1,25 +1,10 @@
 namespace Yaf.Domain.Interfaces;
 
 /// <summary>
-/// Non-generic marker interface for entities that support soft-deletion.
+/// Enforces soft-deletion tracking on entities — when deleted and by whom.
 /// When present, infrastructure uses soft-delete semantics instead of hard delete:
 /// the row stays in the main table with <c>DeletedAtUtc</c> set, and an EF Core
 /// global query filter (<c>WHERE DeletedAtUtc IS NULL</c>) excludes it from normal queries.
-/// </summary>
-/// <remarks>
-/// <para>
-/// Implement the generic <see cref="ISoftDeletable{TActorId}"/> on concrete entities
-/// to track both when and who performed the deletion.
-/// </para>
-/// <para>
-/// This interface is standalone — it does not inherit from <see cref="ITimestamped"/>
-/// or <see cref="IAccountable"/>. Consumers compose interfaces as needed.
-/// </para>
-/// </remarks>
-public interface ISoftDeletable;
-
-/// <summary>
-/// Enforces soft-deletion tracking on entities — when deleted and by whom.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -28,20 +13,28 @@ public interface ISoftDeletable;
 /// un-deleted by clearing both properties.
 /// </para>
 /// <para>
+/// This interface is standalone — it does not inherit from <see cref="ITimestamped"/>
+/// or <c>IAccountable&lt;TActorId&gt;</c>. Consumers compose interfaces as needed.
+/// </para>
+/// <para>
 /// Soft-deletion coexists with the graveyard (<see cref="IHasVersionHistory"/>):
 /// <list type="bullet">
-///   <item><description><see cref="ISoftDeletable"/> alone: soft delete (row stays, timestamp set)</description></item>
+///   <item><description><see cref="ISoftDeletable{TActorId}"/> alone: soft delete (row stays, timestamp set)</description></item>
 ///   <item><description><see cref="IHasVersionHistory"/> alone: graveyard (row archived)</description></item>
 ///   <item><description>Both: soft delete first, then optional permanent delete to graveyard</description></item>
 ///   <item><description>Neither: hard delete (row gone)</description></item>
 /// </list>
+/// </para>
+/// <para>
+/// Consumers handle soft-delete fields in their <c>SnapshotCore</c>/<c>RestoreCore</c>/<c>HydrateCore</c>
+/// implementations.
 /// </para>
 /// </remarks>
 /// <typeparam name="TActorId">
 /// The strongly-typed actor identifier for tracking who performed the deletion.
 /// Must implement <see cref="ITypedId"/>.
 /// </typeparam>
-public interface ISoftDeletable<TActorId> : ISoftDeletable
+public interface ISoftDeletable<TActorId>
     where TActorId : ITypedId
 {
     /// <summary>

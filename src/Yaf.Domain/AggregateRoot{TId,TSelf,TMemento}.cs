@@ -63,7 +63,6 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     {
         ArgumentNullException.ThrowIfNull(memento);
         MementoHelper<TId, TSelf, TMemento>.WriteIdentity(memento, Id);
-        MementoHelper<TId, TSelf, TMemento>.WriteCrossCuttingConcerns(memento, (TSelf)this);
         SnapshotCore(memento);
     }
 
@@ -79,7 +78,6 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
             instance.Id = id!;
         }
 
-        MementoHelper<TId, TSelf, TMemento>.ReadCrossCuttingConcerns(memento, instance);
         instance.RestoreCore(memento);
         instance.ThrowIfInvalid();
         return instance;
@@ -102,7 +100,6 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
             Id = id!;
         }
 
-        MementoHelper<TId, TSelf, TMemento>.ReadCrossCuttingConcerns(memento, (TSelf)this);
         HydrateCore(memento);
         this.ThrowIfInvalid();
     }

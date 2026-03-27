@@ -60,7 +60,6 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     {
         ArgumentNullException.ThrowIfNull(memento);
         MementoHelper<TId, TSelf, TMemento>.WriteIdentity(memento, Id);
-        MementoHelper<TId, TSelf, TMemento>.WriteCrossCuttingConcerns(memento, (TSelf)this);
         SnapshotCore(memento);
     }
 
@@ -76,7 +75,6 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
             instance.Id = id!;
         }
 
-        MementoHelper<TId, TSelf, TMemento>.ReadCrossCuttingConcerns(memento, instance);
         instance.RestoreCore(memento);
         instance.ThrowIfInvalid();
         return instance;
@@ -99,7 +97,6 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
             Id = id!;
         }
 
-        MementoHelper<TId, TSelf, TMemento>.ReadCrossCuttingConcerns(memento, (TSelf)this);
         HydrateCore(memento);
         this.ThrowIfInvalid();
     }

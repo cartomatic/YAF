@@ -1,26 +1,14 @@
 namespace Yaf.Domain.Interfaces;
 
 /// <summary>
-/// Non-generic marker interface for entities that are scoped to a tenant.
-/// Enables runtime discovery by infrastructure for automatic EF Core
-/// global query filter application (<c>WHERE TenantId = @current</c>).
-/// </summary>
-/// <remarks>
-/// Implement the generic <see cref="ITenantScoped{TTenantId}"/> on concrete entities.
-/// This non-generic base exists solely for runtime <c>is</c> checks.
-/// </remarks>
-public interface ITenantScoped;
-
-/// <summary>
 /// Enforces tenant context on entities. The tenant identifier is set at creation
 /// time and is immutable by convention — infrastructure validates this on save.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Entity constructors or factory methods are responsible for accepting and setting
-/// <see cref="TenantId"/> at creation time. The memento auto-handling in
-/// <see cref="Helpers.MementoHelper{TId,TSelf,TMemento}"/> only covers the persistence
-/// round-trip (Snapshot/Restore/Hydrate).
+/// <see cref="TenantId"/> at creation time. Consumers handle the tenant ID in their
+/// <c>SnapshotCore</c>/<c>RestoreCore</c>/<c>HydrateCore</c> implementations.
 /// </para>
 /// <para>
 /// The framework provides <see cref="Yaf.Domain.TenantId"/> as a convenience default,
@@ -30,7 +18,7 @@ public interface ITenantScoped;
 /// <typeparam name="TTenantId">
 /// The strongly-typed tenant identifier. Must implement <see cref="ITypedId"/>.
 /// </typeparam>
-public interface ITenantScoped<TTenantId> : ITenantScoped
+public interface ITenantScoped<TTenantId>
     where TTenantId : ITypedId
 {
     /// <summary>

@@ -289,10 +289,10 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             Type entityType, Type genericInterface, Type actorIdType)
         {
             // Read CreatedBy and ModifiedBy, extract BoxedValue from typed IDs
-            var createdByProp = entityType.GetProperty("CreatedBy")
-                ?? throw MissingPropertyError(entityType, "CreatedBy");
-            var modifiedByProp = entityType.GetProperty("ModifiedBy")
-                ?? throw MissingPropertyError(entityType, "ModifiedBy");
+            var createdByProp = entityType.GetProperty(nameof(IHasAccountability<Guid>.CreatedBy))
+                ?? throw MissingPropertyError(entityType, nameof(IHasAccountability<Guid>.CreatedBy));
+            var modifiedByProp = entityType.GetProperty(nameof(IHasAccountability<Guid>.ModifiedBy))
+                ?? throw MissingPropertyError(entityType, nameof(IHasAccountability<Guid>.ModifiedBy));
 
             var entityParam = Expression.Parameter(typeof(TSelf), "entity");
 
@@ -308,8 +308,8 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         private static Action<TSelf, object?, object?> BuildAccountabilityWriter(
             Type entityType, Type actorIdType)
         {
-            var createdBySetter = FindPropertySetter(entityType, "CreatedBy");
-            var modifiedBySetter = FindPropertySetter(entityType, "ModifiedBy");
+            var createdBySetter = FindPropertySetter(entityType, nameof(IHasAccountability<Guid>.CreatedBy));
+            var modifiedBySetter = FindPropertySetter(entityType, nameof(IHasAccountability<Guid>.ModifiedBy));
             var factory = TypedIdFactoryCache.GetOrBuild(actorIdType);
 
             return (entity, boxedCreatedBy, boxedModifiedBy) =>
@@ -323,8 +323,8 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 
         private static Action<TSelf, DateTimeOffset?, DateTimeOffset?> BuildTimestampWriter(Type entityType)
         {
-            var createdAtSetter = FindPropertySetter(entityType, "CreatedAtUtc");
-            var modifiedAtSetter = FindPropertySetter(entityType, "ModifiedAtUtc");
+            var createdAtSetter = FindPropertySetter(entityType, nameof(ITimestamped.CreatedAtUtc));
+            var modifiedAtSetter = FindPropertySetter(entityType, nameof(ITimestamped.ModifiedAtUtc));
 
             return (entity, createdAtUtc, modifiedAtUtc) =>
             {
@@ -338,10 +338,10 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         private static Func<TSelf, (DateTimeOffset?, object?)> BuildSoftDeleteReader(
             Type entityType, Type genericInterface, Type actorIdType)
         {
-            var deletedAtProp = entityType.GetProperty("DeletedAtUtc")
-                ?? throw MissingPropertyError(entityType, "DeletedAtUtc");
-            var deletedByProp = entityType.GetProperty("DeletedBy")
-                ?? throw MissingPropertyError(entityType, "DeletedBy");
+            var deletedAtProp = entityType.GetProperty(nameof(IHasSoftDelete<Guid>.DeletedAtUtc))
+                ?? throw MissingPropertyError(entityType, nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
+            var deletedByProp = entityType.GetProperty(nameof(IHasSoftDelete<Guid>.DeletedBy))
+                ?? throw MissingPropertyError(entityType, nameof(IHasSoftDelete<Guid>.DeletedBy));
 
             var entityParam = Expression.Parameter(typeof(TSelf), "entity");
 
@@ -360,8 +360,8 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         private static Action<TSelf, DateTimeOffset?, object?> BuildSoftDeleteWriter(
             Type entityType, Type actorIdType)
         {
-            var deletedAtSetter = FindPropertySetter(entityType, "DeletedAtUtc");
-            var deletedBySetter = FindPropertySetter(entityType, "DeletedBy");
+            var deletedAtSetter = FindPropertySetter(entityType, nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
+            var deletedBySetter = FindPropertySetter(entityType, nameof(IHasSoftDelete<Guid>.DeletedBy));
             var factory = TypedIdFactoryCache.GetOrBuild(actorIdType);
 
             return (entity, deletedAtUtc, boxedDeletedBy) =>
@@ -376,8 +376,8 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         private static Func<TSelf, object?> BuildTenantReader(
             Type entityType, Type genericInterface, Type tenantIdType)
         {
-            var tenantIdProp = entityType.GetProperty("TenantId")
-                ?? throw MissingPropertyError(entityType, "TenantId");
+            var tenantIdProp = entityType.GetProperty(nameof(IHasTenantId<Guid>.TenantId))
+                ?? throw MissingPropertyError(entityType, nameof(IHasTenantId<Guid>.TenantId));
 
             var entityParam = Expression.Parameter(typeof(TSelf), "entity");
             var propAccess = Expression.Property(entityParam, tenantIdProp);
@@ -406,7 +406,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 
         private static Action<TSelf, object?> BuildTenantWriter(Type entityType, Type tenantIdType)
         {
-            var tenantIdSetter = FindPropertySetter(entityType, "TenantId");
+            var tenantIdSetter = FindPropertySetter(entityType, nameof(IHasTenantId<Guid>.TenantId));
             var factory = TypedIdFactoryCache.GetOrBuild(tenantIdType);
 
             return (entity, boxedTenantId) =>

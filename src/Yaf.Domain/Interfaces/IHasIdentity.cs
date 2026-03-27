@@ -39,12 +39,6 @@ public interface IHasIdentity<T> : IHasIdentity
     object? IHasIdentity.BoxedId
     {
         get => Id;
-        set => Id = value switch
-        {
-            null => null,
-            T typed => typed,
-            _ => throw new ArgumentException(
-                $"Expected {typeof(T).Name}, got {value.GetType().Name}.", nameof(value))
-        };
+        set => Id = Helpers.BoxingHelper.Unbox<T>(value);
     }
 }

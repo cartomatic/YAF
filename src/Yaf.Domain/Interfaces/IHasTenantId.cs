@@ -43,12 +43,6 @@ public interface IHasTenantId<T> : IHasTenantId
     object? IHasTenantId.BoxedTenantId
     {
         get => TenantId;
-        set => TenantId = value switch
-        {
-            null => null,
-            T typed => typed,
-            _ => throw new ArgumentException(
-                $"Expected {typeof(T).Name}, got {value.GetType().Name}.", nameof(value))
-        };
+        set => TenantId = Helpers.BoxingHelper.Unbox<T>(value);
     }
 }

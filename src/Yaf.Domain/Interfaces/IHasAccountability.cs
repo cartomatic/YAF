@@ -50,25 +50,13 @@ public interface IHasAccountability<T> : IHasAccountability
     object? IHasAccountability.BoxedCreatedBy
     {
         get => CreatedBy;
-        set => CreatedBy = Unbox(value);
+        set => CreatedBy = Helpers.BoxingHelper.Unbox<T>(value);
     }
 
     /// <inheritdoc />
     object? IHasAccountability.BoxedModifiedBy
     {
         get => ModifiedBy;
-        set => ModifiedBy = Unbox(value);
+        set => ModifiedBy = Helpers.BoxingHelper.Unbox<T>(value);
     }
-
-    /// <summary>
-    /// Converts a boxed value to <typeparamref name="T"/>?, with null propagation and type checking.
-    /// Shared by all DIM property setters on this interface.
-    /// </summary>
-    private static T? Unbox(object? value) => value switch
-    {
-        null => null,
-        T typed => typed,
-        _ => throw new ArgumentException(
-            $"Expected {typeof(T).Name}, got {value.GetType().Name}.", nameof(value))
-    };
 }

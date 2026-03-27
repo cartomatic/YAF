@@ -49,12 +49,6 @@ public interface IHasSoftDelete<T> : IHasSoftDelete
     object? IHasSoftDelete.BoxedDeletedBy
     {
         get => DeletedBy;
-        set => DeletedBy = value switch
-        {
-            null => null,
-            T typed => typed,
-            _ => throw new ArgumentException(
-                $"Expected {typeof(T).Name}, got {value.GetType().Name}.", nameof(value))
-        };
+        set => DeletedBy = Helpers.BoxingHelper.Unbox<T>(value);
     }
 }

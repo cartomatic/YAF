@@ -17,7 +17,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     private static readonly Func<object, TId>? _idFactory = BuildIdFactory();
 
     // Lazy-initialized cross-cutting concern handlers (one-time cost per generic instantiation).
-    private static CrossCuttingHandlers? _handlers;
+    private static MementoBridge? _handlers;
 
     /// <summary>
     /// Writes the entity's identity to the memento if types are compatible.
@@ -187,8 +187,8 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     internal static TSelf CreateUninitializedInstance() =>
         (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
 
-    private static CrossCuttingHandlers EnsureHandlers() =>
-        _handlers ??= CrossCuttingHandlers.Build();
+    private static MementoBridge EnsureHandlers() =>
+        _handlers ??= MementoBridge.Build();
 
     /// <summary>
     /// Extracts the primitive backing value from a typed ID, or returns the value as-is
@@ -223,7 +223,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     /// Cached compiled delegates for cross-cutting concern read/write operations.
     /// Built once per <c>MementoHelper&lt;TId, TSelf, TMemento&gt;</c> instantiation.
     /// </summary>
-    private sealed class CrossCuttingHandlers
+    private sealed class MementoBridge
     {
         internal Func<TSelf, (object?, object?)>? AccountabilityReader;
         internal Action<TSelf, object?, object?>? AccountabilityWriter;
@@ -239,9 +239,9 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         internal Action<TSelf, object?>? TenantWriter;
         internal Func<object, object>? TenantIdFactory;
 
-        internal static CrossCuttingHandlers Build()
+        internal static MementoBridge Build()
         {
-            var handlers = new CrossCuttingHandlers();
+            var handlers = new MementoBridge();
             var entityType = typeof(TSelf);
 
             if (typeof(IAccountable).IsAssignableFrom(entityType)

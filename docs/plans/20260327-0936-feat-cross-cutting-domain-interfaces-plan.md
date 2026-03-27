@@ -1,7 +1,7 @@
 ---
 title: "feat: Cross-cutting domain and memento interfaces"
 type: feat
-status: active
+status: completed
 date: 2026-03-27
 ---
 
@@ -392,69 +392,69 @@ Note: `IHasVersionInfo`/`IHasVersionHistory` are memento-only infrastructure con
 
 ### Domain Interfaces
 
-- [ ] `IAccountable` non-generic marker (no properties, no boxing)
-- [ ] `IAccountable<TActorId>` generic with `CreatedBy?`, `ModifiedBy?`; `TActorId : ITypedId`
-- [ ] `ITimestamped` with `CreatedAtUtc?`, `ModifiedAtUtc?` (both nullable, get-only, no deletion fields)
-- [ ] `ISoftDeletable` non-generic marker (no properties, no boxing — consistent with IAccountable, ITenantScoped)
-- [ ] `ISoftDeletable<TActorId>` generic with `DeletedAtUtc?`, `TActorId? DeletedBy`; `TActorId : ITypedId`
-- [ ] `ITenantScoped` non-generic marker (no properties, no boxing)
-- [ ] `ITenantScoped<TTenantId>` generic with `TTenantId TenantId`; `TTenantId : ITypedId`
+- [x] `IAccountable` non-generic marker (no properties, no boxing)
+- [x] `IAccountable<TActorId>` generic with `CreatedBy?`, `ModifiedBy?`; `TActorId : ITypedId`
+- [x] `ITimestamped` with `CreatedAtUtc?`, `ModifiedAtUtc?` (both nullable, get-only, no deletion fields)
+- [x] `ISoftDeletable` non-generic marker (no properties, no boxing — consistent with IAccountable, ITenantScoped)
+- [x] `ISoftDeletable<TActorId>` generic with `DeletedAtUtc?`, `TActorId? DeletedBy`; `TActorId : ITypedId`
+- [x] `ITenantScoped` non-generic marker (no properties, no boxing)
+- [x] `ITenantScoped<TTenantId>` generic with `TTenantId TenantId`; `TTenantId : ITypedId`
 
 ### Memento Interfaces
 
-- [ ] `IHasAccountability` / `IHasAccountability<T>` — CreatedBy?, ModifiedBy? (all nullable, no deletion fields)
-- [ ] `IHasTimestamps` — `CreatedAtUtc?`, `ModifiedAtUtc?` (both nullable, get/set)
-- [ ] `IHasSoftDelete` / `IHasSoftDelete<T>` — `DeletedAtUtc?`, `DeletedBy?`
-- [ ] `IHasTenantId` / `IHasTenantId<T>` — non-generic + generic with DIM
-- [ ] `IHasVersionInfo` with `Guid Version` get/set (memento-only)
-- [ ] `IHasVersionHistory` independent marker (memento-only, does not extend IHasVersionInfo)
+- [x] `IHasAccountability` / `IHasAccountability<T>` — CreatedBy?, ModifiedBy? (all nullable, no deletion fields)
+- [x] `IHasTimestamps` — `CreatedAtUtc?`, `ModifiedAtUtc?` (both nullable, get/set)
+- [x] `IHasSoftDelete` / `IHasSoftDelete<T>` — `DeletedAtUtc?`, `DeletedBy?`
+- [x] `IHasTenantId` / `IHasTenantId<T>` — non-generic + generic with DIM
+- [x] `IHasVersionInfo` with `Guid Version` get/set (memento-only)
+- [x] `IHasVersionHistory` independent marker (memento-only, does not extend IHasVersionInfo)
 
 ### Framework Types
 
-- [ ] `TenantId` record: `public record TenantId(Guid Value) : TypedId<Guid>(Value)` with XML doc
+- [x] `TenantId` record: `public record TenantId(Guid Value) : TypedId<Guid>(Value)` with XML doc
 
 ### Auto-Handling in Base Classes
 
-- [ ] `Entity<TId, TSelf, TMemento>` auto-handles accountability, timestamps, soft-delete, and tenant in Snapshot/Restore/Hydrate
-- [ ] `AggregateRoot<TId, TSelf, TMemento>` same auto-handling
-- [ ] Auto-handling silently skips when entity implements interface but memento does not (graceful degradation)
-- [ ] Auto-handling silently skips when entity does not implement the interface (backward compatible)
-- [ ] Existing tests continue to pass without modification
-- [ ] `IHasVersionInfo` and `IHasVersionHistory` are memento-only — no auto-handling in base classes
+- [x] `Entity<TId, TSelf, TMemento>` auto-handles accountability, timestamps, soft-delete, and tenant in Snapshot/Restore/Hydrate
+- [x] `AggregateRoot<TId, TSelf, TMemento>` same auto-handling
+- [x] Auto-handling silently skips when entity implements interface but memento does not (graceful degradation)
+- [x] Auto-handling silently skips when entity does not implement the interface (backward compatible)
+- [x] Existing tests continue to pass without modification
+- [x] `IHasVersionInfo` and `IHasVersionHistory` are memento-only — no auto-handling in base classes
 
 ### MementoHelper
 
-- [ ] `WriteAccountability` / `ReadAccountability` with compiled actor ID factory (runtime discovery, `ConcurrentDictionary` cache)
-- [ ] `WriteTimestamps` / `ReadTimestamps` — direct nullable DateTimeOffset copy via compiled property setters
-- [ ] `WriteSoftDelete` / `ReadSoftDelete` — DateTimeOffset? + actor ID bridging
-- [ ] `WriteTenantId` / `ReadTenantId` — typed ID <-> primitive bridging with compiled factory
-- [ ] Actionable error messages when entity property lacks required `private set` accessor
+- [x] `WriteAccountability` / `ReadAccountability` with compiled actor ID factory (runtime discovery, `ConcurrentDictionary` cache)
+- [x] `WriteTimestamps` / `ReadTimestamps` — direct nullable DateTimeOffset copy via compiled property setters
+- [x] `WriteSoftDelete` / `ReadSoftDelete` — DateTimeOffset? + actor ID bridging
+- [x] `WriteTenantId` / `ReadTenantId` — typed ID <-> primitive bridging with compiled factory
+- [x] Actionable error messages when entity property lacks required `private set` accessor
 
 ### Testing
 
-- [ ] Round-trip Snapshot/Restore for each domain interface individually
-- [ ] Round-trip Snapshot/Restore for all domain interfaces combined on a single entity
-- [ ] Graceful degradation: entity implements interface, memento does not — silent skip
-- [ ] Nullable timestamps: `CreatedAtUtc` null (not yet persisted), `ModifiedAtUtc` null
-- [ ] Non-null timestamps: both set after simulated persistence round-trip
-- [ ] `CreatedBy` null before persistence, non-null after Restore with populated memento
-- [ ] `ModifiedBy` null and non-null cases
-- [ ] ISoftDeletable: `DeletedAtUtc` + `DeletedBy` round-trip when soft-deleted
-- [ ] ISoftDeletable: `DeletedAtUtc` null when not deleted
-- [ ] ISoftDeletable works standalone (without ITimestamped or IAccountable)
-- [ ] ISoftDeletable composes with ITimestamped + IAccountable on same entity
-- [ ] `TenantId` round-trip: typed -> primitive -> typed
-- [ ] Actor ID round-trip: typed -> primitive -> typed (compiled factory)
-- [ ] Backward compatibility: existing entities without new interfaces work identically
-- [ ] Hydrate round-trip for each interface
-- [ ] `IHasVersionInfo` on memento: `Version` property round-trips
-- [ ] `IHasVersionHistory` marker: verifiable via `is IHasVersionHistory` check
-- [ ] Missing `private set` on entity property: actionable error thrown
-- [ ] All public API has XML doc comments (CS1591 enforced)
+- [x] Round-trip Snapshot/Restore for each domain interface individually
+- [x] Round-trip Snapshot/Restore for all domain interfaces combined on a single entity
+- [x] Graceful degradation: entity implements interface, memento does not — silent skip
+- [x] Nullable timestamps: `CreatedAtUtc` null (not yet persisted), `ModifiedAtUtc` null
+- [x] Non-null timestamps: both set after simulated persistence round-trip
+- [x] `CreatedBy` null before persistence, non-null after Restore with populated memento
+- [x] `ModifiedBy` null and non-null cases
+- [x] ISoftDeletable: `DeletedAtUtc` + `DeletedBy` round-trip when soft-deleted
+- [x] ISoftDeletable: `DeletedAtUtc` null when not deleted
+- [x] ISoftDeletable works standalone (without ITimestamped or IAccountable)
+- [x] ISoftDeletable composes with ITimestamped + IAccountable on same entity
+- [x] `TenantId` round-trip: typed -> primitive -> typed
+- [x] Actor ID round-trip: typed -> primitive -> typed (compiled factory)
+- [x] Backward compatibility: existing entities without new interfaces work identically
+- [x] Hydrate round-trip for each interface
+- [x] `IHasVersionInfo` on memento: `Version` property round-trips
+- [x] `IHasVersionHistory` marker: verifiable via `is IHasVersionHistory` check
+- [x] Missing `private set` on entity property: actionable error thrown
+- [x] All public API has XML doc comments (CS1591 enforced)
 
 ### ADR Updates
 
-- [ ] Amend cross-cutting infrastructure ADR:
+- [x] Amend cross-cutting infrastructure ADR:
   - Remove `DeletedBy`/`DeletedAtUtc` from `IAccountable` and `ITimestamped` sections
   - Add `ISoftDeletable<TActorId>` as a new standalone cross-cutting concern
   - Explain why opt-in `ISoftDeletable` differs from the rejected per-table soft-delete approach

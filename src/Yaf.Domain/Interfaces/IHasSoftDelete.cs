@@ -17,10 +17,9 @@ public interface IHasSoftDelete
     DateTimeOffset? DeletedAtUtc { get; set; }
 
     /// <summary>
-    /// The <see cref="Type"/> of the actor identity value, or <see langword="null"/>
-    /// if the non-generic <see cref="ISoftDeletable"/> marker is used without actor tracking.
+    /// The <see cref="Type"/> of the actor identity value (e.g., <c>typeof(Guid)</c>).
     /// </summary>
-    Type? ActorIdType { get; }
+    Type ActorIdType { get; }
 
     /// <summary>
     /// The deleter's identity value boxed as <see cref="object"/>.
@@ -43,7 +42,7 @@ public interface IHasSoftDelete<T> : IHasSoftDelete
     T? DeletedBy { get; set; }
 
     /// <inheritdoc />
-    Type? IHasSoftDelete.ActorIdType => typeof(T);
+    Type IHasSoftDelete.ActorIdType => typeof(T);
 
     /// <inheritdoc />
     object? IHasSoftDelete.BoxedDeletedBy

@@ -60,10 +60,7 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     {
         ArgumentNullException.ThrowIfNull(memento);
         MementoHelper<TId, TSelf, TMemento>.WriteIdentity(memento, Id);
-        MementoHelper<TId, TSelf, TMemento>.WriteAccountability(memento, (TSelf)this);
-        MementoHelper<TId, TSelf, TMemento>.WriteTimestamps(memento, (TSelf)this);
-        MementoHelper<TId, TSelf, TMemento>.WriteSoftDelete(memento, (TSelf)this);
-        MementoHelper<TId, TSelf, TMemento>.WriteTenantId(memento, (TSelf)this);
+        MementoHelper<TId, TSelf, TMemento>.WriteCrossCuttingConcerns(memento, (TSelf)this);
         SnapshotCore(memento);
     }
 
@@ -79,10 +76,7 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
             instance.Id = id!;
         }
 
-        MementoHelper<TId, TSelf, TMemento>.ReadAccountability(memento, instance);
-        MementoHelper<TId, TSelf, TMemento>.ReadTimestamps(memento, instance);
-        MementoHelper<TId, TSelf, TMemento>.ReadSoftDelete(memento, instance);
-        MementoHelper<TId, TSelf, TMemento>.ReadTenantId(memento, instance);
+        MementoHelper<TId, TSelf, TMemento>.ReadCrossCuttingConcerns(memento, instance);
         instance.RestoreCore(memento);
         instance.ThrowIfInvalid();
         return instance;
@@ -105,10 +99,7 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
             Id = id!;
         }
 
-        MementoHelper<TId, TSelf, TMemento>.ReadAccountability(memento, (TSelf)this);
-        MementoHelper<TId, TSelf, TMemento>.ReadTimestamps(memento, (TSelf)this);
-        MementoHelper<TId, TSelf, TMemento>.ReadSoftDelete(memento, (TSelf)this);
-        MementoHelper<TId, TSelf, TMemento>.ReadTenantId(memento, (TSelf)this);
+        MementoHelper<TId, TSelf, TMemento>.ReadCrossCuttingConcerns(memento, (TSelf)this);
         HydrateCore(memento);
         this.ThrowIfInvalid();
     }

@@ -16,8 +16,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 {
     private static readonly Func<object, TId>? _idFactory = BuildIdFactory();
 
-    // Lazy-initialized cross-cutting concern handlers (one-time cost per generic instantiation).
-    private static MementoBridge? _handlers;
+    private static readonly Lazy<MementoBridge> _bridge = new(MementoBridge.Build);
 
     /// <summary>
     /// Writes the entity's identity to the memento if types are compatible.
@@ -66,11 +65,10 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         if (entity is not IAccountable || memento is not IHasAccountability hasAccountability)
             return;
 
-        var handlers = EnsureHandlers();
-        if (handlers.AccountabilityReader is null)
+        if (Bridge.AccountabilityReader is null)
             return;
 
-        var (createdBy, modifiedBy) = handlers.AccountabilityReader(entity);
+        var (createdBy, modifiedBy) = Bridge.AccountabilityReader(entity);
         hasAccountability.BoxedCreatedBy = ExtractPrimitive(createdBy);
         hasAccountability.BoxedModifiedBy = ExtractPrimitive(modifiedBy);
     }
@@ -83,13 +81,12 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         if (entity is not IAccountable || memento is not IHasAccountability hasAccountability)
             return;
 
-        var handlers = EnsureHandlers();
-        if (handlers.AccountabilityWriter is null)
+        if (Bridge.AccountabilityWriter is null)
             return;
 
-        var createdBy = ReconstructTypedId(hasAccountability.BoxedCreatedBy, handlers.ActorIdFactory);
-        var modifiedBy = ReconstructTypedId(hasAccountability.BoxedModifiedBy, handlers.ActorIdFactory);
-        handlers.AccountabilityWriter(entity, createdBy, modifiedBy);
+        var createdBy = ReconstructTypedId(hasAccountability.BoxedCreatedBy, Bridge.ActorIdFactory);
+        var modifiedBy = ReconstructTypedId(hasAccountability.BoxedModifiedBy, Bridge.ActorIdFactory);
+        Bridge.AccountabilityWriter(entity, createdBy, modifiedBy);
     }
 
     /// <summary>
@@ -112,8 +109,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         if (entity is not ITimestamped || memento is not IHasTimestamps hasTimestamps)
             return;
 
-        var handlers = EnsureHandlers();
-        handlers.TimestampWriter?.Invoke(entity, hasTimestamps.CreatedAtUtc, hasTimestamps.ModifiedAtUtc);
+        Bridge.TimestampWriter?.Invoke(entity, hasTimestamps.CreatedAtUtc, hasTimestamps.ModifiedAtUtc);
     }
 
     /// <summary>
@@ -124,11 +120,10 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         if (entity is not ISoftDeletable || memento is not IHasSoftDelete hasSoftDelete)
             return;
 
-        var handlers = EnsureHandlers();
-        if (handlers.SoftDeleteReader is null)
+        if (Bridge.SoftDeleteReader is null)
             return;
 
-        var (deletedAtUtc, deletedBy) = handlers.SoftDeleteReader(entity);
+        var (deletedAtUtc, deletedBy) = Bridge.SoftDeleteReader(entity);
         hasSoftDelete.DeletedAtUtc = deletedAtUtc;
         hasSoftDelete.BoxedDeletedBy = ExtractPrimitive(deletedBy);
     }
@@ -141,12 +136,11 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         if (entity is not ISoftDeletable || memento is not IHasSoftDelete hasSoftDelete)
             return;
 
-        var handlers = EnsureHandlers();
-        if (handlers.SoftDeleteWriter is null)
+        if (Bridge.SoftDeleteWriter is null)
             return;
 
-        var deletedBy = ReconstructTypedId(hasSoftDelete.BoxedDeletedBy, handlers.DeleteActorIdFactory);
-        handlers.SoftDeleteWriter(entity, hasSoftDelete.DeletedAtUtc, deletedBy);
+        var deletedBy = ReconstructTypedId(hasSoftDelete.BoxedDeletedBy, Bridge.DeleteActorIdFactory);
+        Bridge.SoftDeleteWriter(entity, hasSoftDelete.DeletedAtUtc, deletedBy);
     }
 
     /// <summary>
@@ -157,11 +151,10 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         if (entity is not ITenantScoped || memento is not IHasTenantId hasTenantId)
             return;
 
-        var handlers = EnsureHandlers();
-        if (handlers.TenantReader is null)
+        if (Bridge.TenantReader is null)
             return;
 
-        var tenantId = handlers.TenantReader(entity);
+        var tenantId = Bridge.TenantReader(entity);
         hasTenantId.BoxedTenantId = ExtractPrimitive(tenantId);
     }
 
@@ -173,12 +166,35 @@ internal static class MementoHelper<TId, TSelf, TMemento>
         if (entity is not ITenantScoped || memento is not IHasTenantId hasTenantId)
             return;
 
-        var handlers = EnsureHandlers();
-        if (handlers.TenantWriter is null)
+        if (Bridge.TenantWriter is null)
             return;
 
-        var tenantId = ReconstructTypedId(hasTenantId.BoxedTenantId, handlers.TenantIdFactory);
-        handlers.TenantWriter(entity, tenantId);
+        var tenantId = ReconstructTypedId(hasTenantId.BoxedTenantId, Bridge.TenantIdFactory);
+        Bridge.TenantWriter(entity, tenantId);
+    }
+
+    /// <summary>
+    /// Writes all cross-cutting concern fields from entity to memento.
+    /// Called by base class Snapshot after identity is written and before SnapshotCore.
+    /// </summary>
+    internal static void WriteCrossCuttingConcerns(TMemento memento, TSelf entity)
+    {
+        WriteAccountability(memento, entity);
+        WriteTimestamps(memento, entity);
+        WriteSoftDelete(memento, entity);
+        WriteTenantId(memento, entity);
+    }
+
+    /// <summary>
+    /// Reads all cross-cutting concern fields from memento and sets them on the entity.
+    /// Called by base class Restore/Hydrate after identity is read and before RestoreCore/HydrateCore.
+    /// </summary>
+    internal static void ReadCrossCuttingConcerns(TMemento memento, TSelf entity)
+    {
+        ReadAccountability(memento, entity);
+        ReadTimestamps(memento, entity);
+        ReadSoftDelete(memento, entity);
+        ReadTenantId(memento, entity);
     }
 
     /// <summary>
@@ -187,8 +203,7 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     internal static TSelf CreateUninitializedInstance() =>
         (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
 
-    private static MementoBridge EnsureHandlers() =>
-        _handlers ??= MementoBridge.Build();
+    private static MementoBridge Bridge => _bridge.Value;
 
     /// <summary>
     /// Extracts the primitive backing value from a typed ID, or returns the value as-is
@@ -241,65 +256,62 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 
         internal static MementoBridge Build()
         {
-            var handlers = new MementoBridge();
+            var bridge = new MementoBridge();
             var entityType = typeof(TSelf);
 
-            if (typeof(IAccountable).IsAssignableFrom(entityType)
-                && ReflectionHelper.FindGenericInterface(entityType, typeof(IAccountable<>)) is { } accountableInterface)
+            if (ReflectionHelper.FindGenericInterface(entityType, typeof(IAccountable<>)) is { } accountableInterface)
             {
                 var readCreatedBy = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasAccountability<Guid>.CreatedBy));
                 var readModifiedBy = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasAccountability<Guid>.ModifiedBy));
-                handlers.AccountabilityReader = entity => (readCreatedBy(entity), readModifiedBy(entity));
+                bridge.AccountabilityReader = entity => (readCreatedBy(entity), readModifiedBy(entity));
 
                 var writeCreatedBy = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasAccountability<Guid>.CreatedBy));
                 var writeModifiedBy = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasAccountability<Guid>.ModifiedBy));
-                handlers.AccountabilityWriter = (entity, createdBy, modifiedBy) =>
+                bridge.AccountabilityWriter = (entity, createdBy, modifiedBy) =>
                 {
                     writeCreatedBy(entity, createdBy);
                     writeModifiedBy(entity, modifiedBy);
                 };
 
-                handlers.ActorIdFactory = TypedIdFactoryCache.GetOrBuild(accountableInterface.GetGenericArguments()[0]);
+                bridge.ActorIdFactory = TypedIdFactoryCache.GetOrBuild(accountableInterface.GetGenericArguments()[0]);
             }
 
             if (typeof(ITimestamped).IsAssignableFrom(entityType))
             {
                 var writeCreatedAt = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(ITimestamped.CreatedAtUtc));
                 var writeModifiedAt = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(ITimestamped.ModifiedAtUtc));
-                handlers.TimestampWriter = (entity, createdAtUtc, modifiedAtUtc) =>
+                bridge.TimestampWriter = (entity, createdAtUtc, modifiedAtUtc) =>
                 {
                     writeCreatedAt(entity, createdAtUtc);
                     writeModifiedAt(entity, modifiedAtUtc);
                 };
             }
 
-            if (typeof(ISoftDeletable).IsAssignableFrom(entityType)
-                && ReflectionHelper.FindGenericInterface(entityType, typeof(ISoftDeletable<>)) is { } softDeletableInterface)
+            if (ReflectionHelper.FindGenericInterface(entityType, typeof(ISoftDeletable<>)) is { } softDeletableInterface)
             {
                 var readDeletedAt = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
                 var readDeletedBy = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedBy));
-                handlers.SoftDeleteReader = entity => ((DateTimeOffset?)readDeletedAt(entity), readDeletedBy(entity));
+                bridge.SoftDeleteReader = entity => ((DateTimeOffset?)readDeletedAt(entity), readDeletedBy(entity));
 
                 var writeDeletedAt = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedAtUtc));
                 var writeDeletedBy = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasSoftDelete<Guid>.DeletedBy));
-                handlers.SoftDeleteWriter = (entity, deletedAtUtc, deletedBy) =>
+                bridge.SoftDeleteWriter = (entity, deletedAtUtc, deletedBy) =>
                 {
                     writeDeletedAt(entity, deletedAtUtc);
                     writeDeletedBy(entity, deletedBy);
                 };
 
-                handlers.DeleteActorIdFactory = TypedIdFactoryCache.GetOrBuild(softDeletableInterface.GetGenericArguments()[0]);
+                bridge.DeleteActorIdFactory = TypedIdFactoryCache.GetOrBuild(softDeletableInterface.GetGenericArguments()[0]);
             }
 
-            if (typeof(ITenantScoped).IsAssignableFrom(entityType)
-                && ReflectionHelper.FindGenericInterface(entityType, typeof(ITenantScoped<>)) is { } tenantScopedInterface)
+            if (ReflectionHelper.FindGenericInterface(entityType, typeof(ITenantScoped<>)) is { } tenantScopedInterface)
             {
-                handlers.TenantReader = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasTenantId<Guid>.TenantId));
-                handlers.TenantWriter = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasTenantId<Guid>.TenantId));
-                handlers.TenantIdFactory = TypedIdFactoryCache.GetOrBuild(tenantScopedInterface.GetGenericArguments()[0]);
+                bridge.TenantReader = ReflectionHelper.BuildPropertyReader<TSelf>(nameof(IHasTenantId<Guid>.TenantId));
+                bridge.TenantWriter = ReflectionHelper.BuildPropertyWriter<TSelf>(nameof(IHasTenantId<Guid>.TenantId));
+                bridge.TenantIdFactory = TypedIdFactoryCache.GetOrBuild(tenantScopedInterface.GetGenericArguments()[0]);
             }
 
-            return handlers;
+            return bridge;
         }
     }
 

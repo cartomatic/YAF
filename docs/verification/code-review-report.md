@@ -1,17 +1,19 @@
 # Code Review Report
 
-**Date**: 2026-03-26
-**Path**: src/Yaf.Domain/ (17 source files, 4 test files)
+**Date**: 2026-03-27
+**Path**: src/Yaf.Domain/ (24 source files), tests/Yaf.Domain.Tests/ (7 test files)
 **Scope**: all (quality, security, performance, best practices)
 **Status**: Warning -- Issues Found
 
 ## Summary
 - **Critical**: 0 issues
-- **Warnings**: 5 issues
-- **Info**: 5 issues
-- **Files analyzed**: 21
+- **Warnings**: 4 issues
+- **Info**: 6 issues
+- **Files analyzed**: 31 (24 source + 7 test)
 - **Build**: Clean (0 warnings, 0 errors)
-- **Tests**: 58 passed, 0 failed
+- **Tests**: 101 passed, 0 failed
+
+Note: This report supersedes the 2026-03-26 report. W2 (double-validation in ThrowIfInvalid) from the prior report has been resolved -- the current code captures errors once.
 
 ---
 
@@ -23,143 +25,173 @@ None.
 
 ## Warnings
 
-### W1. Code duplication between Entity{TId,TSelf,TMemento} and AggregateRoot{TId,TSelf,TMemento}
+### W1. Significant code duplication between Entity{TId,TSelf,TMemento} and AggregateRoot{TId,TSelf,TMemento}
 
-**Location**: `src/Yaf.Domain/Entity{TId,TSelf,TMemento}.cs` (lines 59-123) and `src/Yaf.Domain/AggregateRoot{TId,TSelf,TMemento}.cs` (lines 62-127)
+**Location**: `src/Yaf.Domain/Entity{TId,TSelf,TMemento}.cs:59-132` and `src/Yaf.Domain/AggregateRoot{TId,TSelf,TMemento}.cs:62-135`
 **Category**: Quality
 **Fixable**: true
 
-The `Snapshot`, `Restore`, `Hydrate` methods and the four abstract method declarations are nearly identical in both classes. The only difference is the base class constraint (`Entity<TId>` vs `AggregateRoot<TId>`). This is approximately 65 lines of duplicated logic.
+The `Snapshot`, `Restore`, and `Hydrate` method bodies are identical in both classes (approximately 65 lines each), including all `MementoHelper` call sequences, null-checks, identity read/write, cross-cutting concern bridging, and the four abstract method declarations. The only difference is the CRTP constraint (`Entity<TId>` vs `AggregateRoot<TId>`).
 
-**Why it matters**: Any bug fix or behavioral change to the memento lifecycle must be applied in two places. As the framework grows, this duplication risk compounds.
+**Why it matters**: Any bug fix or behavioral change to the memento lifecycle must be applied in two places. With the new cross-cutting concern support (accountability, timestamps, soft-delete, tenant), the duplicated surface area has grown further.
 
-**Recommendation**: This was likely a deliberate design trade-off to avoid an intermediate base class in the hierarchy (which would complicate the CRTP pattern). If so, document it with a comment. Otherwise, consider extracting the shared logic into `MementoHelper` as instance methods or a mixin-style approach.
-
----
-
-### W2. ThrowIfInvalid calls GetValidationErrors twice
-
-**Location**: `src/Yaf.Domain/Extensions/ValidatableExtensions.cs:20-26`
-**Category**: Performance
-**Fixable**: true
-
-`ThrowIfInvalid` calls `IsValid()` (which calls `GetValidationErrors().Count`), and when invalid, calls `GetValidationErrors()` again for the exception. This means validation runs twice on every invalid state.
-
-**Why it matters**: `GetValidationErrors()` is consumer-implemented and could be expensive (e.g., checking database uniqueness constraints or doing complex calculations). Doubling the cost on the failure path is wasteful.
-
-**Recommendation**: Capture the errors once:
-```csharp
-public static void ThrowIfInvalid(this IValidatable validatable)
-{
-    var errors = validatable.GetValidationErrors();
-    if (errors.Count > 0)
-    {
-        throw new ValidationException(validatable.GetType(), errors);
-    }
-}
-```
+**Recommendation**: This is likely a deliberate design trade-off to avoid an intermediate generic base class in the hierarchy. If so, add a brief comment (e.g., `// Intentional duplication -- see ADR or CLAUDE.md`). Otherwise, extract shared logic into `MementoHelper` as orchestration methods that accept delegates for the abstract calls.
 
 ---
 
-### W3. Hydrate on invalid state leaves entity in a corrupted state
+### W2. Hydrate on invalid state leaves entity in a corrupted state
 
-**Location**: `src/Yaf.Domain/Entity{TId,TSelf,TMemento}.cs:84-96` and `src/Yaf.Domain/AggregateRoot{TId,TSelf,TMemento}.cs:87-99`
+**Location**: `src/Yaf.Domain/Entity{TId,TSelf,TMemento}.cs:92-105` and `src/Yaf.Domain/AggregateRoot{TId,TSelf,TMemento}.cs:95-108`
 **Category**: Quality
 **Fixable**: false
 
-When `Hydrate` is called, the entity's `Id` and subclass state are mutated *before* validation runs. If validation fails and `ValidationException` is thrown, the entity is left in a partially-mutated, invalid state. The caller holds a reference to an object whose invariants are broken.
+When `Hydrate` is called, the entity's `Id`, cross-cutting fields, and subclass state are mutated *before* validation runs. If validation fails and `ValidationException` is thrown, the entity is left in a partially-mutated, invalid state. The caller holds a reference to an object whose invariants are broken.
 
 **Why it matters**: In a tracked-entity scenario (e.g., EF Core change tracker), catching the exception leaves the entity instance in memory with corrupted state, which could lead to subtle bugs if the entity is reused.
 
-**Recommendation**: Document this as a known design constraint (the caller should discard or re-hydrate the entity on failure), or consider a two-phase approach: validate the memento *before* mutating state.
+**Current mitigation**: The XML doc on `Hydrate` does document this: "Callers should discard the entity instance on ValidationException rather than continuing to use it." This is adequate documentation of the design decision.
+
+**Recommendation**: No immediate action needed -- the documentation is clear. Consider adding this as an ADR if the pattern is questioned later.
 
 ---
 
-### W4. RuntimeHelpers.GetUninitializedObject bypasses constructor invariants
+### W3. Silent failure when TypedId lacks required constructor
 
-**Location**: `src/Yaf.Domain/Helpers/MementoHelper.cs:49-50` and `src/Yaf.Domain/ValueObject{TSelf,TMemento}.cs:33`
+**Location**: `src/Yaf.Domain/Helpers/MementoHelper.cs:222-235` (`BuildIdFactory`)
 **Category**: Quality
-**Fixable**: false
-
-`GetUninitializedObject` creates instances without running any constructor, meaning field initializers, `readonly` field assignments, and constructor guards are all skipped. This is by design for the memento pattern, but the `Entity<TId>.Id` property has `= default!` which means it starts as `null` after uninitialized creation.
-
-**Why it matters**: Between `CreateUninitializedInstance()` and the completion of `RestoreCore()`, the entity is in an invalid state where `Id` is `null`. If `RestoreCore()` throws, the caller gets a partially-initialized object. This is mitigated by the `ThrowIfInvalid()` guard, but `GetValidationErrors()` implementations may not check for a null `Id`.
-
-**Recommendation**: Document the contract clearly: `GetValidationErrors()` implementations should validate that `Id` is set (for entities using manual identity handling). Consider adding a null-Id check in the base `Restore` method after `RestoreCore` returns but before validation.
-
----
-
-### W5. Activator-based ID factory via reflection with no constructor validation at startup
-
-**Location**: `src/Yaf.Domain/Helpers/MementoHelper.cs:52-65`
-**Category**: Quality / Performance
 **Fixable**: true
 
-`BuildIdFactory` uses reflection to find a single-parameter constructor on the `TId` type and compiles an expression tree. If the constructor is missing (e.g., the consumer forgot positional record syntax), `_idFactory` silently becomes `null` and `ReadIdentity` returns `(default, false)` -- identity restoration silently does nothing.
+`BuildIdFactory` returns `null` when no suitable constructor is found. In `ReadIdentity` (line 41-47), a null `_idFactory` throws an `InvalidOperationException` only when the memento implements `IHasIdentity` with matching types. However, the error only manifests at runtime when `Restore` or `Hydrate` is first called with a compatible memento.
 
-**Why it matters**: A consumer who implements `IHasIdentity<T>` on their memento but defines their `TypedId` incorrectly will get silent data loss: the entity's `Id` will remain `default!` (null) after restore. This is a confusing failure mode.
+**Why it matters**: A consumer who defines `record OrderId : TypedId<Guid>` without positional syntax (missing the `(Guid Value)` part) will get a runtime crash on first restore, potentially in production. The error message is helpful, but the failure could be caught earlier.
 
-**Recommendation**: Consider logging a diagnostic warning or throwing during static initialization if the constructor is not found and `TMemento` implements `IHasIdentity`. At minimum, document this requirement prominently.
+**Recommendation**: The error message is already descriptive (line 44-46). Consider adding a static analyzer or a startup-time validation hook in the future. For now, document this requirement in the `TypedId<T>` XML docs more prominently (the current `<remarks>` mention it but could be stronger).
+
+---
+
+### W4. ReflectionHelper.BuildPropertyReader does not use BindingFlags for consistency
+
+**Location**: `src/Yaf.Domain/Helpers/ReflectionHelper.cs:27` vs `src/Yaf.Domain/Helpers/ReflectionHelper.cs:44`
+**Category**: Quality
+**Fixable**: true
+
+`BuildPropertyReader` (line 27) uses `entityType.GetProperty(propertyName)` without explicit `BindingFlags`, while `BuildPropertyWriter` (line 44) uses `entityType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)`. The default for `GetProperty(string)` is `BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static`, meaning `BuildPropertyReader` could accidentally match a static property while `BuildPropertyWriter` would not.
+
+**Why it matters**: If a consumer defines a static property with the same name as an interface property (unlikely but possible), the reader would bind to the static property while the writer would fail with a "missing property" error. The inconsistency is a latent bug.
+
+**Recommendation**: Add `BindingFlags.Public | BindingFlags.Instance` to `BuildPropertyReader` for consistency:
+```csharp
+var prop = entityType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
+```
 
 ---
 
 ## Informational
 
-### I1. IHasIdentity.BoxedId setter allows external mutation of identity
+### I1. MementoBridge class uses mutable fields instead of properties
 
-**Location**: `src/Yaf.Domain/Interfaces/IHasIdentity.cs:18` (`object BoxedId { get; set; }`)
-**Category**: Best Practices
-**Fixable**: false
-
-The non-generic `IHasIdentity.BoxedId` has a public setter, meaning anyone with a reference to the memento cast to `IHasIdentity` can change the identity. This is intentional for the memento pattern (infrastructure writes the ID), but it does widen the mutation surface.
-
-**Suggestion**: No action needed if the memento is only used by infrastructure. Worth noting for documentation.
-
----
-
-### I2. Array.Empty<IDomainEvent>() allocation on every DomainEvents access when null
-
-**Location**: `src/Yaf.Domain/AggregateRoot.cs:31`
-**Category**: Performance
+**Location**: `src/Yaf.Domain/Helpers/MementoHelper.cs:242-255`
+**Category**: Quality
 **Fixable**: true
 
-`Array.Empty<IDomainEvent>()` returns a cached singleton, so there is no allocation concern here. This is actually well-implemented. Noted for completeness -- no action needed.
+The `MementoBridge` sealed class uses `internal` fields (e.g., `AccountabilityReader`, `TimestampWriter`) rather than properties or `init`-only properties. While this is fine for an internal sealed class that is only set during `Build()`, using `{ get; init; }` properties would make the "set once, read many" intent clearer and prevent accidental mutation.
+
+**Suggestion**: Low priority. The class is private-nested within a static generic class, so the exposure is minimal.
 
 ---
 
-### I3. ValidationException serialization support
+### I2. IHasIdentity<T> constrains T to struct, excluding string-backed IDs
+
+**Location**: `src/Yaf.Domain/Interfaces/IHasIdentity.cs:28` (`where T : struct, IEquatable<T>`)
+**Category**: Quality
+**Fixable**: false
+
+The `IHasIdentity<T>` interface constrains `T` to `struct`, meaning string-backed typed IDs (e.g., `record SlugId(string Value) : TypedId<string>(Value)`) cannot use automatic identity handling via `IHasIdentity<T>`. The same constraint applies to `IHasAccountability<T>`, `IHasSoftDelete<T>`, and `IHasTenantId<T>`.
+
+**Why it matters**: `TypedId<T>` itself does not require `T : struct` (only `IEquatable<T>`), so consumers can create string-backed IDs for business use. However, those IDs cannot participate in automatic memento identity handling.
+
+**Suggestion**: This is likely deliberate (struct constraint enables `Nullable<T>` for the `T? Id` property). Document this limitation in the `IHasIdentity` XML docs so consumers are aware that string-backed IDs require manual identity handling in mementos.
+
+---
+
+### I3. Test coverage gap: no tests for null argument guards
+
+**Location**: `tests/Yaf.Domain.Tests/`
+**Category**: Quality
+**Fixable**: true
+
+The following null-guard paths are untested:
+- `Entity<TId>(TId id)` constructor with null id
+- `AggregateRoot<TId>.AddDomainEvent(null)`
+- `Entity<TId,TSelf,TMemento>.Snapshot(null)`
+- `Entity<TId,TSelf,TMemento>.Hydrate(null)`
+- `AggregateRoot<TId,TSelf,TMemento>.Snapshot(null)`
+- `AggregateRoot<TId,TSelf,TMemento>.Hydrate(null)`
+- `ValueObject<TSelf,TMemento>.Snapshot(null)`
+- Static `Restore(null)` methods on all three base classes
+
+**Suggestion**: Add tests verifying `ArgumentNullException` is thrown for each. These are quick wins for coverage completeness and document the defensive coding contract.
+
+---
+
+### I4. ValidationException serialization
 
 **Location**: `src/Yaf.Domain/ValidationException.cs`
 **Category**: Best Practices
 **Fixable**: true
 
-`ValidationException` derives from `Exception` but does not implement `ISerializable` or include a serialization constructor. While .NET no longer requires `BinaryFormatter` support (it is obsolete), some logging frameworks and APM tools may attempt to serialize exceptions. The `Errors` and `ObjectType` properties would be lost.
+`ValidationException` derives from `Exception` but does not implement serialization support. The `Errors` and `ObjectType` properties would be lost during serialization by logging frameworks or APM tools.
 
-**Suggestion**: Low priority. Monitor if this causes issues in integration scenarios.
-
----
-
-### I4. Test coverage gap: no test for AddDomainEvent with null argument
-
-**Location**: `tests/Yaf.Domain.Tests/AggregateRootTests.cs`
-**Category**: Quality
-**Fixable**: true
-
-`AddDomainEvent` has `ArgumentNullException.ThrowIfNull(domainEvent)` but no test verifies this guard. Similarly, `Snapshot`, `Restore`, and `Hydrate` all have null guards that are untested.
-
-**Suggestion**: Add tests for null argument guards across the API surface to verify defensive coding is in place.
+**Suggestion**: Low priority. Modern .NET has deprecated `BinaryFormatter`, but some serialization scenarios (structured logging, exception telemetry) may benefit from a `ToString()` override that includes error details, or from implementing `ISerializable`. Monitor if this causes issues in integration.
 
 ---
 
-### I5. Magic number 255 in test value object
+### I5. TypedId<T>.BoxedValue could box value types on every access
 
-**Location**: `tests/Yaf.Domain.Tests/ValueObjectTests.cs:86-91`
+**Location**: `src/Yaf.Domain/TypedId.cs:33` (`public object BoxedValue => Value!;`)
+**Category**: Performance
+**Fixable**: false
+
+Every access to `BoxedValue` on a struct-backed TypedId (e.g., `TypedId<Guid>`) boxes the value into a new `object` allocation. This property is only used during memento snapshot/restore (not hot paths), so the impact is negligible.
+
+**Suggestion**: No action needed. The boxing is inherent to the `object`-typed bridge pattern and only occurs during persistence operations.
+
+---
+
+### I6. No test for version info/history interfaces in the memento bridge round-trip
+
+**Location**: `tests/Yaf.Domain.Tests/MementoBridgeTests.cs:644-684`
 **Category**: Quality
 **Fixable**: true
 
-The color validation uses magic numbers `0` and `255` without named constants. This is acceptable in test code, but the pattern would be problematic if it appeared in production domain objects.
+The `VersionInfoTests` class tests that the `IHasVersionInfo` and `IHasVersionHistory` interfaces work at the interface level (property read/write, type checking). However, there are no round-trip tests verifying that version info is preserved through the Entity/AggregateRoot snapshot-restore cycle. This is because version info is infrastructure-managed (not domain-managed), so the memento bridge intentionally does not touch it.
 
-**Suggestion**: No action needed for test fixtures. Ensure production value objects use named constants or range types.
+**Suggestion**: Add a comment in the test class explaining why no round-trip test exists, to prevent future reviewers from flagging it as a gap.
+
+---
+
+## Security Analysis
+
+No security issues identified. This is a domain-layer library with:
+- No hardcoded secrets
+- No user input handling (no HTTP, no SQL, no file I/O)
+- No `eval`/dynamic code execution beyond compiled expression trees (which are built from known types, not user input)
+- No logging of sensitive data
+- Internal helpers are properly scoped with `internal` access modifiers
+- `InternalsVisibleTo` is limited to the test project
+
+---
+
+## Performance Analysis
+
+No performance issues identified. The codebase uses:
+- Compiled expression trees cached via `static readonly` and `Lazy<T>` (one-time cost)
+- `ConcurrentDictionary` for thread-safe TypedId factory caching
+- `Array.Empty<T>()` for zero-allocation empty collections
+- Lazy list initialization (`??= []`) for domain events
+- No synchronous I/O, no N+1 patterns, no unbounded allocations
+
+The only minor boxing occurs in `BoxedValue` (I5) and the bridge pattern, both of which are persistence-path only.
 
 ---
 
@@ -167,29 +199,30 @@ The color validation uses magic numbers `0` and `255` without named constants. T
 
 | Metric | Value |
 |--------|-------|
-| Max function length | ~15 lines (`Restore` in Entity{TId,TSelf,TMemento}) |
+| Max function length | ~30 lines (`MementoBridge.Build` in MementoHelper.cs) |
 | Max nesting depth | 2 levels |
-| Cyclomatic complexity | Low (max ~3 per method) |
+| Cyclomatic complexity | Low (max ~4 per method in MementoBridge.Build) |
 | Potential vulnerabilities | 0 |
 | N+1 query risks | 0 (no data access layer) |
-| Source files | 17 |
-| Test files | 4 |
-| Test count | 58 passing |
+| Source files analyzed | 24 |
+| Test files analyzed | 7 |
+| Test count | 101 passing |
 | Code duplication | 1 significant instance (W1) |
 | XML doc coverage | 100% of public API |
+| Build warnings | 0 |
 
 ---
 
 ## Prioritized Recommendations
 
-1. **W2 -- Fix double-validation in ThrowIfInvalid**. Simple one-line fix that eliminates redundant work on every invalid state check. High value, low effort.
+1. **W4 -- Add BindingFlags to BuildPropertyReader**. One-line fix that eliminates an inconsistency between reader and writer, preventing a potential latent bug. High value, near-zero effort.
 
-2. **W3 -- Document or mitigate Hydrate's partial-mutation risk**. Either add a doc comment warning consumers to discard entities on `ValidationException`, or implement validate-before-mutate.
+2. **W3 -- Strengthen TypedId constructor documentation**. The error message at runtime is good, but the requirement could be documented more prominently on `TypedId<T>` itself so consumers discover it at authoring time, not at runtime.
 
-3. **W5 -- Improve diagnostics for missing TypedId constructor**. Silent null-factory is a confusing failure mode. At minimum add XML doc warnings; ideally throw at static init time.
+3. **W1 -- Acknowledge Entity/AggregateRoot memento duplication**. Add a brief comment explaining the trade-off. If the duplication is ever reduced, `MementoHelper` already provides the infrastructure for it.
 
-4. **W1 -- Acknowledge or reduce Entity/AggregateRoot memento duplication**. If deliberate, add a code comment. If not, extract shared logic.
+4. **W2 -- Hydrate partial-mutation is already documented**. No further action needed unless ADR coverage is desired.
 
-5. **W4 -- Document GetUninitializedObject contract for consumers**. Ensure consuming developers understand that `GetValidationErrors()` may be called when `Id` is still `default`.
+5. **I3 -- Add null-guard tests**. Quick wins for coverage completeness (~8 small tests).
 
-6. **I4 -- Add null-guard tests**. Quick wins for test coverage completeness.
+6. **I2 -- Document IHasIdentity struct constraint limitation**. Prevent consumer confusion about string-backed IDs.

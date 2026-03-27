@@ -24,7 +24,7 @@ internal static class ReflectionHelper
     internal static Func<TEntity, object?> BuildPropertyReader<TEntity>(string propertyName)
     {
         var entityType = typeof(TEntity);
-        var prop = entityType.GetProperty(propertyName)
+        var prop = entityType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
             ?? throw MissingPropertyError(entityType, propertyName);
 
         var entityParam = Expression.Parameter(entityType, "entity");

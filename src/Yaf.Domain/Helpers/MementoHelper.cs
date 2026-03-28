@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Yaf.Domain.Interfaces;
 
@@ -13,8 +12,6 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     where TSelf : Entity<TId>
     where TMemento : class
 {
-    private static readonly Func<Guid, TId>? _idFactory = BuildIdFactory();
-
     /// <summary>
     /// Writes the entity's identity to the memento if the memento implements <see cref="IHasIdentity"/>.
     /// </summary>
@@ -33,20 +30,12 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     {
         if (memento is IHasIdentity hasIdentity)
         {
-            if (_idFactory is null)
-            {
-                throw new InvalidOperationException(
-                    $"{typeof(TId).Name} must have a public constructor accepting a single " +
-                    $"Guid parameter for automatic identity restoration. " +
-                    $"Use positional record syntax: record {typeof(TId).Name}(Guid Value)");
-            }
-
             if (hasIdentity.Id is null)
             {
                 return (default, true);
             }
 
-            return (_idFactory(hasIdentity.Id.Value), true);
+            return ((TId)Activator.CreateInstance(typeof(TId), hasIdentity.Id.Value)!, true);
         }
 
         return (default, false);
@@ -57,18 +46,4 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     /// </summary>
     internal static TSelf CreateUninitializedInstance() =>
         (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
-
-    private static Func<Guid, TId>? BuildIdFactory()
-    {
-        var constructor = typeof(TId).GetConstructor([typeof(Guid)]);
-
-        if (constructor is null)
-        {
-            return null;
-        }
-
-        var param = Expression.Parameter(typeof(Guid), "value");
-        var body = Expression.New(constructor, param);
-        return Expression.Lambda<Func<Guid, TId>>(body, param).Compile();
-    }
 }

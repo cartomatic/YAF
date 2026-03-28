@@ -7,9 +7,6 @@ namespace Yaf.Domain.Helpers;
 /// <summary>
 /// Shared memento orchestration logic used by both <see cref="Entity{TId,TSelf,TMemento}"/>
 /// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> to avoid duplication.
-/// Handles identity bridging automatically. Cross-cutting concerns (accountability,
-/// timestamps, soft-delete, tenant) are handled by consumers in their
-/// <c>SnapshotCore</c>/<c>HydrateCore</c> implementations.
 /// </summary>
 internal static class MementoHelper<TId, TSelf, TMemento>
     where TId : ITypedId
@@ -17,6 +14,8 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     where TMemento : class
 {
     private static readonly Func<object, TId>? _idFactory = BuildIdFactory();
+
+    // --- Identity ---
 
     /// <summary>
     /// Writes the entity's identity to the memento if types are compatible.
@@ -31,8 +30,6 @@ internal static class MementoHelper<TId, TSelf, TMemento>
 
     /// <summary>
     /// Reads the identity from the memento and constructs a <typeparamref name="TId"/> if types are compatible.
-    /// Returns <c>default</c> if the memento does not implement <see cref="IHasIdentity"/>
-    /// or the identity types are incompatible.
     /// </summary>
     internal static (TId? id, bool success) ReadIdentity(TMemento memento)
     {
@@ -62,6 +59,47 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     /// </summary>
     internal static TSelf CreateUninitializedInstance() =>
         (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
+
+    // --- Conditional delegate builders ---
+    // These check whether TSelf/TMemento implement the required interfaces before
+    // compiling delegates. Returns null when the concern does not apply, avoiding
+    // unnecessary reflection.
+
+    /// <summary>
+    /// Builds a compiled property writer if <typeparamref name="TSelf"/> implements
+    /// <typeparamref name="TDomain"/> and <typeparamref name="TMemento"/> implements <typeparamref name="TMem"/>.
+    /// </summary>
+    internal static Action<TSelf, object?>? BuildWriter<TDomain, TMem>(string propertyName) =>
+        typeof(TDomain).IsAssignableFrom(typeof(TSelf)) && typeof(TMem).IsAssignableFrom(typeof(TMemento))
+            ? ReflectionHelper.BuildPropertyWriter<TSelf>(propertyName)
+            : null;
+
+    /// <summary>
+    /// Builds a compiled property writer if <typeparamref name="TSelf"/> implements
+    /// the open generic domain interface and <typeparamref name="TMemento"/> implements the memento interface.
+    /// </summary>
+    internal static Action<TSelf, object?>? BuildWriter(Type openGenericDomain, Type mementoInterface, string propertyName) =>
+        ReflectionHelper.FindGenericInterface(typeof(TSelf), openGenericDomain) is not null
+            && mementoInterface.IsAssignableFrom(typeof(TMemento))
+            ? ReflectionHelper.BuildPropertyWriter<TSelf>(propertyName)
+            : null;
+
+    /// <summary>
+    /// Builds a compiled property reader if <typeparamref name="TSelf"/> implements
+    /// the open generic domain interface and <typeparamref name="TMemento"/> implements the memento interface.
+    /// </summary>
+    internal static Func<TSelf, object?>? BuildReader(Type openGenericDomain, Type mementoInterface, string propertyName) =>
+        ReflectionHelper.FindGenericInterface(typeof(TSelf), openGenericDomain) is not null
+            && mementoInterface.IsAssignableFrom(typeof(TMemento))
+            ? ReflectionHelper.BuildPropertyReader<TSelf>(propertyName)
+            : null;
+
+    /// <summary>
+    /// Builds a <see cref="TypedIdBridge{TSelf}"/> if <typeparamref name="TSelf"/> implements
+    /// the open generic domain interface and <typeparamref name="TMemento"/> implements the memento interface.
+    /// </summary>
+    internal static TypedIdBridge<TSelf>? BuildBridge(Type openGenericDomain, Type mementoInterface, string prop1, string? prop2 = null) =>
+        TypedIdBridge<TSelf>.TryBuild<TMemento>(openGenericDomain, mementoInterface, prop1, prop2);
 
     private static Func<object, TId>? BuildIdFactory()
     {

@@ -18,12 +18,12 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     where TSelf : Entity<TId, TSelf, TMemento>
     where TMemento : class
 {
-    private static readonly Action<TSelf, object?>? _createdAtWriter = BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.CreatedAtUtc));
-    private static readonly Action<TSelf, object?>? _modifiedAtWriter = BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.ModifiedAtUtc));
-    private static readonly Action<TSelf, object?>? _deletedAtWriter = BuildWriter(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
-    private static readonly Func<TSelf, object?>? _deletedAtReader = BuildReader(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
-    private static readonly TypedIdBridge<TSelf>? _accountabilityBridge = TypedIdBridge<TSelf>.TryBuild<TMemento>(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability<Guid>.CreatedBy), nameof(IHasAccountability<Guid>.ModifiedBy));
-    private static readonly TypedIdBridge<TSelf>? _softDeleteBridge = TypedIdBridge<TSelf>.TryBuild<TMemento>(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete<Guid>.DeletedBy));
+    private static readonly Action<TSelf, object?>? _createdAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.CreatedAtUtc));
+    private static readonly Action<TSelf, object?>? _modifiedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.ModifiedAtUtc));
+    private static readonly Action<TSelf, object?>? _deletedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
+    private static readonly Func<TSelf, object?>? _deletedAtReader = MementoHelper<TId, TSelf, TMemento>.BuildReader(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
+    private static readonly TypedIdBridge<TSelf>? _accountabilityBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability<Guid>.CreatedBy), nameof(IHasAccountability<Guid>.ModifiedBy));
+    private static readonly TypedIdBridge<TSelf>? _softDeleteBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete<Guid>.DeletedBy));
 
     /// <inheritdoc />
     protected Entity(TId id) : base(id) { }
@@ -142,20 +142,4 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
         }
     }
 
-    // --- Helpers ---
-
-    private static Action<TSelf, object?>? BuildWriter<TDomain, TMemInterface>(string name) =>
-        typeof(TDomain).IsAssignableFrom(typeof(TSelf)) && typeof(TMemInterface).IsAssignableFrom(typeof(TMemento))
-            ? ReflectionHelper.BuildPropertyWriter<TSelf>(name)
-            : null;
-
-    private static Action<TSelf, object?>? BuildWriter(Type openGenericDomain, Type mementoInterface, string name) =>
-        ReflectionHelper.FindGenericInterface(typeof(TSelf), openGenericDomain) is not null && mementoInterface.IsAssignableFrom(typeof(TMemento))
-            ? ReflectionHelper.BuildPropertyWriter<TSelf>(name)
-            : null;
-
-    private static Func<TSelf, object?>? BuildReader(Type openGenericDomain, Type mementoInterface, string name) =>
-        ReflectionHelper.FindGenericInterface(typeof(TSelf), openGenericDomain) is not null && mementoInterface.IsAssignableFrom(typeof(TMemento))
-            ? ReflectionHelper.BuildPropertyReader<TSelf>(name)
-            : null;
 }

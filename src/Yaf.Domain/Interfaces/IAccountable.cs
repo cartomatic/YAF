@@ -7,31 +7,38 @@ namespace Yaf.Domain.Interfaces;
 /// <para>
 /// Both properties are nullable. <see langword="null"/> indicates the entity has not yet
 /// completed a persistence round-trip. Infrastructure auto-populates these from
-/// <c>IIdentityContextProvider</c> during <c>SaveChanges</c> and must throw if user context
+/// <c>IIdentityContextProvider</c> during <c>SaveChanges</c> and must throw if actor context
 /// is not available when saving an accountable entity.
 /// </para>
 /// <para>
-/// Deletion tracking is a separate concern — see <see cref="ISoftDeletable{TActorId}"/>.
+/// Deletion tracking is a separate concern — see <see cref="ISoftDeletable"/>.
 /// </para>
 /// <para>
-/// Consumers handle accountability in their <c>SnapshotCore</c>/<c>HydrateCore</c>
-/// implementations, mapping between typed actor IDs and primitive memento values.
+/// Uses the framework-provided <see cref="Yaf.Domain.ActorId"/> type.
 /// </para>
 /// </remarks>
-/// <typeparam name="TActorId">
-/// The strongly-typed actor identifier (e.g., <c>UserId</c>, <c>EmployeeId</c>).
-/// Must implement <see cref="ITypedId"/> for compile-time safety.
-/// </typeparam>
-public interface IAccountable<TActorId>
-    where TActorId : ITypedId
+public interface IAccountable
 {
     /// <summary>
     /// The actor who created this entity. <see langword="null"/> before first persistence.
     /// </summary>
-    TActorId? CreatedBy { get; }
+    ActorId? CreatedBy { get; }
 
     /// <summary>
     /// The actor who last modified this entity. <see langword="null"/> until first modification.
     /// </summary>
-    TActorId? ModifiedBy { get; }
+    ActorId? ModifiedBy { get; }
+}
+
+/// <summary>
+/// Internal write-side complement to <see cref="IAccountable"/> for infrastructure hydration.
+/// Entities implement both; domain consumers see only the read-only <see cref="IAccountable"/>.
+/// </summary>
+internal interface IAccountableWriter
+{
+    /// <inheritdoc cref="IAccountable.CreatedBy"/>
+    ActorId? CreatedBy { get; set; }
+
+    /// <inheritdoc cref="IAccountable.ModifiedBy"/>
+    ActorId? ModifiedBy { get; set; }
 }

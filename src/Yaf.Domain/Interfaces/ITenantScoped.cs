@@ -11,18 +11,13 @@ namespace Yaf.Domain.Interfaces;
 /// <c>SnapshotCore</c>/<c>HydrateCore</c> implementations.
 /// </para>
 /// <para>
-/// The framework provides <see cref="Yaf.Domain.TenantId"/> as a convenience default,
-/// but consumers may define their own tenant identifier type.
+/// Uses the framework-provided <see cref="Yaf.Domain.TenantId"/> type.
 /// </para>
 /// </remarks>
-/// <typeparam name="TTenantId">
-/// The strongly-typed tenant identifier. Must implement <see cref="ITypedId"/>.
-/// </typeparam>
-public interface ITenantScoped<TTenantId>
-    where TTenantId : ITypedId
+public interface ITenantScoped
 {
     /// <summary>
     /// The tenant this entity belongs to. Set at creation, immutable by convention.
     /// </summary>
-    TTenantId TenantId { get; }
+    TenantId TenantId { get; }
 }

@@ -11,7 +11,7 @@ namespace Yaf.Domain.Interfaces;
 /// <see cref="ModifiedAtUtc"/> on every subsequent save. All times are UTC.
 /// </para>
 /// <para>
-/// Deletion timestamps are a separate concern — see <see cref="ISoftDeletable{TActorId}"/>.
+/// Deletion timestamps are a separate concern — see <see cref="ISoftDeletable"/>.
 /// </para>
 /// </remarks>
 public interface ITimestamped
@@ -25,4 +25,17 @@ public interface ITimestamped
     /// When this entity was last modified (UTC). <see langword="null"/> until first modification.
     /// </summary>
     DateTimeOffset? ModifiedAtUtc { get; }
+}
+
+/// <summary>
+/// Internal write-side complement to <see cref="ITimestamped"/> for infrastructure hydration.
+/// Entities implement both; domain consumers see only the read-only <see cref="ITimestamped"/>.
+/// </summary>
+internal interface ITimestampedWriter
+{
+    /// <inheritdoc cref="ITimestamped.CreatedAtUtc"/>
+    DateTimeOffset? CreatedAtUtc { get; set; }
+
+    /// <inheritdoc cref="ITimestamped.ModifiedAtUtc"/>
+    DateTimeOffset? ModifiedAtUtc { get; set; }
 }

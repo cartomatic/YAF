@@ -1,7 +1,7 @@
 ---
 title: "Domain event interfaces with cross-cutting context"
 type: feat
-status: active
+status: completed
 date: 2026-03-28
 depends-on: 20260328-0738-refactor-typedid-guid-only-simplification-plan
 ---
@@ -81,17 +81,17 @@ Domain events stay within a bounded context where the framework's `TenantId` typ
 
 ## Acceptance Criteria
 
-- [ ] `ICorrelated` interface: `Guid CorrelationId { get; }` in `Yaf.Domain.Interfaces`
-- [ ] `IUserScoped` interface: `Guid UserId { get; }` in `Yaf.Domain.Interfaces`
-- [ ] `IActivityScoped` interface: `string? ActivityId { get; }` in `Yaf.Domain.Interfaces`
-- [ ] `IDomainEvent` enriched with: `Guid EventId`, `DateTimeOffset OccurredAtUtc`, inherits `ICorrelated`, `ITenantScoped<TenantId>`, `IUserScoped`, `IActivityScoped`
-- [ ] `IDomainEvent<out T>` extends `IDomainEvent` with `T Data { get; }`
-- [ ] Existing `AggregateRoot<TId>.AddDomainEvent(IDomainEvent)` still compiles and works
-- [ ] Existing domain event tests updated for new interface shape
-- [ ] New unit tests for each new interface
-- [ ] New unit tests for `IDomainEvent<T>` covariance
-- [ ] XML doc comments on all public API (CS1591 enforced)
-- [ ] ADR `20260324-1113` updated to reflect context-on-event decision
+- [x] `ICorrelated` interface: `Guid CorrelationId { get; }` in `Yaf.Domain.Interfaces`
+- [x] `IUserScoped` interface: `Guid UserId { get; }` in `Yaf.Domain.Interfaces`
+- [x] `IActivityScoped` interface: `string? ActivityId { get; }` in `Yaf.Domain.Interfaces`
+- [x] `IDomainEvent` enriched with: `Guid EventId`, `DateTimeOffset OccurredAtUtc`, inherits `ICorrelated`, `ITenantScoped<TenantId>`, `IUserScoped`, `IActivityScoped`
+- [x] `IDomainEvent<out T>` extends `IDomainEvent` with `T Data { get; }`
+- [x] Existing `AggregateRoot<TId>.AddDomainEvent(IDomainEvent)` still compiles and works
+- [x] Existing domain event tests updated for new interface shape
+- [x] New unit tests for each new interface
+- [x] New unit tests for `IDomainEvent<T>` covariance
+- [x] XML doc comments on all public API (CS1591 enforced)
+- [x] ADR `20260324-1113` updated to reflect context-on-event decision
 
 ## Success Metrics
 

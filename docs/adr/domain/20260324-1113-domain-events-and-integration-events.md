@@ -75,17 +75,23 @@ Domain events dispatched explicitly after save, with automatic context envelope.
 
 ### Context Envelope
 
-Every event automatically carries:
+> **Amended (2026-03-28):** Context is now part of the `IDomainEvent` contract itself, not attached
+> separately at dispatch time. The event *carries* the context; infrastructure *populates* it.
 
-| Field | Source | Purpose |
-|-------|--------|---------|
-| `TenantId` | `ITenantContextProvider` | Which tenant the operation belongs to |
-| `IdentityId` | `IIdentityContextProvider` | Who triggered the operation |
-| `CorrelationId` | `ICorrelationIdProvider` | Cross-service operation correlation |
-| `ActivityId` | `IActivityIdProvider` | Within-application activity identity |
-| `OccurredAtUtc` | System clock | When the event was raised |
+Every `IDomainEvent` carries these fields as interface members:
 
-Context is populated at dispatch time from context providers (defined in Application, implemented in Infrastructure). The domain object raises events without caring about context — infrastructure attaches it.
+| Field | Interface | Type | Source |
+|-------|-----------|------|--------|
+| `EventId` | `IDomainEvent` | `Guid` | Generated at event creation |
+| `OccurredAtUtc` | `IDomainEvent` | `DateTimeOffset` | System clock |
+| `CorrelationId` | `ICorrelated` | `Guid` | `ICorrelationIdProvider` |
+| `TenantId` | `ITenantScoped` | `TenantId` | `ITenantContextProvider` |
+| `ActorId` | `IActorScoped` | `ActorId` | `IIdentityContextProvider` |
+| `ActivityId` | `IActivityScoped` | `string?` | `IActivityIdProvider` |
+
+`ICorrelated`, `IActorScoped`, and `IActivityScoped` are standalone interfaces — commands, queries, and integration events can implement them too. `IDomainEvent<out T>` extends `IDomainEvent` with a covariant typed data payload.
+
+Infrastructure populates context fields from context providers when the event is created or dispatched. The context providers remain Application-layer contracts, Infrastructure-implemented.
 
 ### Domain Event Lifecycle
 
@@ -106,7 +112,8 @@ Context is populated at dispatch time from context providers (defined in Applica
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `IDomainEvent` | Domain | Marker interface for domain events |
+| `IDomainEvent` | Domain | Full contract: EventId, OccurredAtUtc, inherits ICorrelated, ITenantScoped, IActorScoped, IActivityScoped |
+| `IDomainEvent<out T>` | Domain | Extends IDomainEvent with a covariant typed data payload |
 | `IDomainEventHandler<TEvent>` | Application | Handles a specific domain event type |
 | Event dispatch | Infrastructure | Dispatches events after save, attaches context |
 | `IIntegrationEvent` | Domain | Marker interface for cross-service events (contract only) |

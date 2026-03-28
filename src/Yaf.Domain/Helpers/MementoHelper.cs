@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Yaf.Domain.Interfaces;
 
@@ -7,17 +6,13 @@ namespace Yaf.Domain.Helpers;
 /// <summary>
 /// Shared memento building blocks used by both <see cref="Entity{TId,TSelf,TMemento}"/>
 /// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> for identity bridging and
-/// conditional delegate construction.
+/// cross-cutting concern mapping.
 /// </summary>
 internal static class MementoHelper<TId, TSelf, TMemento>
     where TId : ITypedId
     where TSelf : Entity<TId>
     where TMemento : class
 {
-    private static readonly Func<Guid, TId>? _idFactory = BuildIdFactory();
-
-    // --- Identity ---
-
     /// <summary>
     /// Writes the entity's identity to the memento if the memento implements <see cref="IHasIdentity"/>.
     /// </summary>
@@ -36,20 +31,12 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     {
         if (memento is IHasIdentity hasIdentity)
         {
-            if (_idFactory is null)
-            {
-                throw new InvalidOperationException(
-                    $"{typeof(TId).Name} must have a public constructor accepting a single " +
-                    $"Guid parameter for automatic identity restoration. " +
-                    $"Use positional record syntax: record {typeof(TId).Name}(Guid Value)");
-            }
-
             if (hasIdentity.Id is null)
             {
                 return (default, true);
             }
 
-            return (_idFactory(hasIdentity.Id.Value), true);
+            return ((TId)Activator.CreateInstance(typeof(TId), hasIdentity.Id.Value)!, true);
         }
 
         return (default, false);
@@ -61,59 +48,53 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     internal static TSelf CreateUninitializedInstance() =>
         (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
 
-    // --- Conditional delegate builders ---
-    // These check whether TSelf/TMemento implement the required interfaces before
-    // compiling delegates. Returns null when the concern does not apply, avoiding
-    // unnecessary reflection.
-
     /// <summary>
-    /// Builds a compiled property writer if <typeparamref name="TSelf"/> implements
-    /// <typeparamref name="TDomain"/> and <typeparamref name="TMemento"/> implements <typeparamref name="TMem"/>.
+    /// Snapshots all cross-cutting concerns (timestamps, accountability, soft-delete)
+    /// from the entity to the memento via direct interface reads.
     /// </summary>
-    internal static Action<TSelf, object?>? BuildWriter<TDomain, TMem>(string propertyName) =>
-        typeof(TDomain).IsAssignableFrom(typeof(TSelf)) && typeof(TMem).IsAssignableFrom(typeof(TMemento))
-            ? ReflectionHelper.BuildPropertyWriter<TSelf>(propertyName)
-            : null;
-
-    /// <summary>
-    /// Builds a compiled property writer if <typeparamref name="TSelf"/> implements
-    /// the open generic domain interface and <typeparamref name="TMemento"/> implements the memento interface.
-    /// </summary>
-    internal static Action<TSelf, object?>? BuildWriter(Type openGenericDomain, Type mementoInterface, string propertyName) =>
-        ReflectionHelper.FindGenericInterface(typeof(TSelf), openGenericDomain) is not null
-            && mementoInterface.IsAssignableFrom(typeof(TMemento))
-            ? ReflectionHelper.BuildPropertyWriter<TSelf>(propertyName)
-            : null;
-
-    /// <summary>
-    /// Builds a compiled property reader if <typeparamref name="TSelf"/> implements
-    /// the open generic domain interface and <typeparamref name="TMemento"/> implements the memento interface.
-    /// </summary>
-    internal static Func<TSelf, object?>? BuildReader(Type openGenericDomain, Type mementoInterface, string propertyName) =>
-        ReflectionHelper.FindGenericInterface(typeof(TSelf), openGenericDomain) is not null
-            && mementoInterface.IsAssignableFrom(typeof(TMemento))
-            ? ReflectionHelper.BuildPropertyReader<TSelf>(propertyName)
-            : null;
-
-    /// <summary>
-    /// Builds a <see cref="TypedIdBridge{TSelf}"/> for a single typed ID property if
-    /// <typeparamref name="TSelf"/> implements the open generic domain interface and
-    /// <typeparamref name="TMemento"/> implements the memento interface.
-    /// </summary>
-    internal static TypedIdBridge<TSelf>? BuildBridge(Type openGenericDomain, Type mementoInterface, string propertyName) =>
-        TypedIdBridge<TSelf>.TryBuild<TMemento>(openGenericDomain, mementoInterface, propertyName);
-
-    private static Func<Guid, TId>? BuildIdFactory()
+    internal static void SnapshotCrossCutting(TSelf entity, TMemento memento)
     {
-        var constructor = typeof(TId).GetConstructor([typeof(Guid)]);
-
-        if (constructor is null)
+        if (entity is ITimestamped ts && memento is IHasTimestamps hts)
         {
-            return null;
+            hts.CreatedAtUtc = ts.CreatedAtUtc;
+            hts.ModifiedAtUtc = ts.ModifiedAtUtc;
         }
 
-        var param = Expression.Parameter(typeof(Guid), "value");
-        var body = Expression.New(constructor, param);
-        return Expression.Lambda<Func<Guid, TId>>(body, param).Compile();
+        if (entity is IAccountable acc && memento is IHasAccountability ha)
+        {
+            ha.CreatedBy = acc.CreatedBy?.Value;
+            ha.ModifiedBy = acc.ModifiedBy?.Value;
+        }
+
+        if (entity is ISoftDeletable sd && memento is IHasSoftDelete hsd)
+        {
+            hsd.DeletedAtUtc = sd.DeletedAtUtc;
+            hsd.DeletedBy = sd.DeletedBy?.Value;
+        }
+    }
+
+    /// <summary>
+    /// Hydrates all cross-cutting concerns (timestamps, accountability, soft-delete)
+    /// from the memento to the entity via direct interface writes.
+    /// </summary>
+    internal static void HydrateCrossCutting(TSelf entity, TMemento memento)
+    {
+        if (entity is ITimestampedWriter ts && memento is IHasTimestamps hts)
+        {
+            ts.CreatedAtUtc = hts.CreatedAtUtc;
+            ts.ModifiedAtUtc = hts.ModifiedAtUtc;
+        }
+
+        if (entity is IAccountableWriter acc && memento is IHasAccountability ha)
+        {
+            acc.CreatedBy = ha.CreatedBy.HasValue ? new ActorId(ha.CreatedBy.Value) : null;
+            acc.ModifiedBy = ha.ModifiedBy.HasValue ? new ActorId(ha.ModifiedBy.Value) : null;
+        }
+
+        if (entity is ISoftDeletableWriter sd && memento is IHasSoftDelete hsd)
+        {
+            sd.DeletedAtUtc = hsd.DeletedAtUtc;
+            sd.DeletedBy = hsd.DeletedBy.HasValue ? new ActorId(hsd.DeletedBy.Value) : null;
+        }
     }
 }

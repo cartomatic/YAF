@@ -18,14 +18,6 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     where TSelf : AggregateRoot<TId, TSelf, TMemento>
     where TMemento : class
 {
-    private static readonly Action<TSelf, object?>? _createdAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.CreatedAtUtc));
-    private static readonly Action<TSelf, object?>? _modifiedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.ModifiedAtUtc));
-    private static readonly Action<TSelf, object?>? _deletedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
-    private static readonly Func<TSelf, object?>? _deletedAtReader = MementoHelper<TId, TSelf, TMemento>.BuildReader(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
-    private static readonly TypedIdBridge<TSelf>? _createdByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability.CreatedBy));
-    private static readonly TypedIdBridge<TSelf>? _modifiedByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability.ModifiedBy));
-    private static readonly TypedIdBridge<TSelf>? _deletedByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedBy));
-
     /// <inheritdoc />
     protected AggregateRoot(TId id) : base(id) { }
 
@@ -37,9 +29,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     {
         ArgumentNullException.ThrowIfNull(memento);
         MementoHelper<TId, TSelf, TMemento>.WriteIdentity(memento, Id);
-        SnapshotTimestamps(memento);
-        SnapshotAccountability(memento);
-        SnapshotSoftDelete(memento);
+        MementoHelper<TId, TSelf, TMemento>.SnapshotCrossCutting((TSelf)this, memento);
         SnapshotCore(memento);
     }
 
@@ -63,9 +53,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
             Id = id!;
         }
 
-        HydrateTimestamps(memento);
-        HydrateAccountability(memento);
-        HydrateSoftDelete(memento);
+        MementoHelper<TId, TSelf, TMemento>.HydrateCrossCutting((TSelf)this, memento);
         HydrateCore(memento);
         this.ThrowIfInvalid();
     }
@@ -85,61 +73,4 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
 
     /// <inheritdoc />
     public abstract IReadOnlyCollection<IError> GetValidationErrors();
-
-    // --- Auto-mapped concerns (identical to Entity — shared via TypedIdBridge and ReflectionHelper) ---
-
-    private void SnapshotTimestamps(TMemento memento)
-    {
-        if (this is ITimestamped ts && memento is IHasTimestamps hts)
-        {
-            hts.CreatedAtUtc = ts.CreatedAtUtc;
-            hts.ModifiedAtUtc = ts.ModifiedAtUtc;
-        }
-    }
-
-    private void HydrateTimestamps(TMemento memento)
-    {
-        if (this is ITimestamped && memento is IHasTimestamps hts)
-        {
-            _createdAtWriter?.Invoke((TSelf)this, hts.CreatedAtUtc);
-            _modifiedAtWriter?.Invoke((TSelf)this, hts.ModifiedAtUtc);
-        }
-    }
-
-    private void SnapshotAccountability(TMemento memento)
-    {
-        if (_createdByBridge is not null && memento is IHasAccountability ha)
-        {
-            ha.CreatedBy = _createdByBridge.Read((TSelf)this);
-            ha.ModifiedBy = _modifiedByBridge!.Read((TSelf)this);
-        }
-    }
-
-    private void HydrateAccountability(TMemento memento)
-    {
-        if (_createdByBridge is not null && memento is IHasAccountability ha)
-        {
-            _createdByBridge.Write((TSelf)this, ha.CreatedBy);
-            _modifiedByBridge!.Write((TSelf)this, ha.ModifiedBy);
-        }
-    }
-
-    private void SnapshotSoftDelete(TMemento memento)
-    {
-        if (_deletedByBridge is not null && memento is IHasSoftDelete hsd)
-        {
-            hsd.DeletedAtUtc = (DateTimeOffset?)_deletedAtReader?.Invoke((TSelf)this);
-            hsd.DeletedBy = _deletedByBridge.Read((TSelf)this);
-        }
-    }
-
-    private void HydrateSoftDelete(TMemento memento)
-    {
-        if (_deletedByBridge is not null && memento is IHasSoftDelete hsd)
-        {
-            _deletedAtWriter?.Invoke((TSelf)this, hsd.DeletedAtUtc);
-            _deletedByBridge.Write((TSelf)this, hsd.DeletedBy);
-        }
-    }
-
 }

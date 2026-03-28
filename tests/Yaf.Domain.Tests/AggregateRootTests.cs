@@ -5,7 +5,7 @@ namespace Yaf.Domain.Tests;
 
 public class AggregateRootEventTests
 {
-    private record OrderId(Guid Value) : TypedId<Guid>(Value);
+    private record OrderId(Guid Value) : TypedId(Value);
     private record OrderPlaced(OrderId OrderId) : IDomainEvent;
     private record OrderShipped(OrderId OrderId) : IDomainEvent;
 
@@ -103,10 +103,10 @@ public class AggregateRootEventTests
 
 public class AggregateRootMementoTests
 {
-    private record InvoiceId(Guid Value) : TypedId<Guid>(Value);
+    private record InvoiceId(Guid Value) : TypedId(Value);
     private record InvoiceCreated(InvoiceId InvoiceId) : IDomainEvent;
 
-    private interface IInvoiceMemento : IHasIdentity<Guid>
+    private interface IInvoiceMemento : IHasIdentity
     {
         string Customer { get; set; }
         decimal Total { get; set; }

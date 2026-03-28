@@ -1,33 +1,17 @@
 namespace Yaf.Domain.Interfaces;
 
 /// <summary>
-/// Non-generic base interface for strongly-typed identifiers.
-/// Provides runtime access to the backing value type and boxed value
-/// for cross-type identity operations.
+/// Interface for strongly-typed identifiers backed by <see cref="Guid"/>.
+/// Consumer derives concrete ID types: <c>public record OrderId(Guid Value) : TypedId(Value);</c>
 /// </summary>
+/// <remarks>
+/// All typed identifiers use <see cref="Guid"/> as the backing value. External systems
+/// with non-Guid identifiers (int, string, etc.) remap at the anti-corruption layer boundary.
+/// </remarks>
 public interface ITypedId
 {
     /// <summary>
-    /// The <see cref="Type"/> of the backing value for this identifier type (e.g., <c>typeof(Guid)</c>).
-    /// Accessible statically via <c>TId.IdentityType</c> for compile-time generic dispatch.
+    /// The backing <see cref="Guid"/> value of this identifier.
     /// </summary>
-    static abstract Type IdentityType { get; }
-
-    /// <summary>
-    /// The backing value boxed as <see cref="object"/>.
-    /// </summary>
-    object BoxedValue { get; }
-}
-
-/// <summary>
-/// Generic interface for strongly-typed identifiers exposing the backing value.
-/// </summary>
-/// <typeparam name="T">The backing value type (e.g., <see cref="Guid"/>, <see cref="int"/>).</typeparam>
-public interface ITypedId<out T> : ITypedId
-    where T : IEquatable<T>
-{
-    /// <summary>
-    /// The backing value of this identifier.
-    /// </summary>
-    T Value { get; }
+    Guid Value { get; }
 }

@@ -5,8 +5,8 @@ namespace Yaf.Domain.Tests;
 
 public class EntityEqualityTests
 {
-    private record TestEntityId(Guid Value) : TypedId<Guid>(Value);
-    private record OtherEntityId(Guid Value) : TypedId<Guid>(Value);
+    private record TestEntityId(Guid Value) : TypedId(Value);
+    private record OtherEntityId(Guid Value) : TypedId(Value);
 
     private class TestEntity : Entity<TestEntityId>
     {
@@ -119,9 +119,9 @@ public class EntityEqualityTests
 
 public class EntityMementoTests
 {
-    private record ProductId(Guid Value) : TypedId<Guid>(Value);
+    private record ProductId(Guid Value) : TypedId(Value);
 
-    private interface IProductMemento : IHasIdentity<Guid>
+    private interface IProductMemento : IHasIdentity
     {
         string Name { get; set; }
         decimal Price { get; set; }
@@ -272,7 +272,7 @@ public class EntityMementoTests
 
 public class EntityManualIdMementoTests
 {
-    private record ItemId(Guid Value) : TypedId<Guid>(Value);
+    private record ItemId(Guid Value) : TypedId(Value);
 
     private interface IItemMemento
     {

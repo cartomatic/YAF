@@ -5,11 +5,8 @@ namespace Yaf.Domain.Tests;
 
 public class TypedIdTests
 {
-    private record TestGuidId(Guid Value) : TypedId<Guid>(Value);
-    private record AnotherGuidId(Guid Value) : TypedId<Guid>(Value);
-    private record TestIntId(int Value) : TypedId<int>(Value);
-    private record TestLongId(long Value) : TypedId<long>(Value);
-    private record TestStringId(string Value) : TypedId<string>(Value);
+    private record TestGuidId(Guid Value) : TypedId(Value);
+    private record AnotherGuidId(Guid Value) : TypedId(Value);
 
     [Fact]
     public void Equality_WithSameTypeAndValue_ReturnsTrue()
@@ -66,47 +63,6 @@ public class TypedIdTests
         var id = new TestGuidId(Guid.NewGuid());
 
         (id is ITypedId).Should().BeTrue();
-    }
-
-    [Fact]
-    public void TypeHierarchy_ImplementsGenericITypedId()
-    {
-        var id = new TestGuidId(Guid.NewGuid());
-
-        (id is ITypedId<Guid>).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IntBackingType_EqualityWorks()
-    {
-        var id1 = new TestIntId(42);
-        var id2 = new TestIntId(42);
-        var id3 = new TestIntId(99);
-
-        id1.Should().Be(id2);
-        id1.Should().NotBe(id3);
-    }
-
-    [Fact]
-    public void LongBackingType_EqualityWorks()
-    {
-        var id1 = new TestLongId(123456789L);
-        var id2 = new TestLongId(123456789L);
-        var id3 = new TestLongId(987654321L);
-
-        id1.Should().Be(id2);
-        id1.Should().NotBe(id3);
-    }
-
-    [Fact]
-    public void StringBackingType_EqualityWorks()
-    {
-        var id1 = new TestStringId("abc");
-        var id2 = new TestStringId("abc");
-        var id3 = new TestStringId("xyz");
-
-        id1.Should().Be(id2);
-        id1.Should().NotBe(id3);
     }
 
     [Fact]

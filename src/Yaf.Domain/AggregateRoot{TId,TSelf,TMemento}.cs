@@ -22,9 +22,9 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     private static readonly Action<TSelf, object?>? _modifiedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.ModifiedAtUtc));
     private static readonly Action<TSelf, object?>? _deletedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
     private static readonly Func<TSelf, object?>? _deletedAtReader = MementoHelper<TId, TSelf, TMemento>.BuildReader(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
-    private static readonly TypedIdBridge<TSelf>? _createdByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability<Guid>.CreatedBy));
-    private static readonly TypedIdBridge<TSelf>? _modifiedByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability<Guid>.ModifiedBy));
-    private static readonly TypedIdBridge<TSelf>? _deletedByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete<Guid>.DeletedBy));
+    private static readonly TypedIdBridge<TSelf>? _createdByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability.CreatedBy));
+    private static readonly TypedIdBridge<TSelf>? _modifiedByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability.ModifiedBy));
+    private static readonly TypedIdBridge<TSelf>? _deletedByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedBy));
 
     /// <inheritdoc />
     protected AggregateRoot(TId id) : base(id) { }
@@ -110,8 +110,8 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     {
         if (_createdByBridge is not null && memento is IHasAccountability ha)
         {
-            ha.BoxedCreatedBy = _createdByBridge.Read((TSelf)this);
-            ha.BoxedModifiedBy = _modifiedByBridge!.Read((TSelf)this);
+            ha.CreatedBy = _createdByBridge.Read((TSelf)this);
+            ha.ModifiedBy = _modifiedByBridge!.Read((TSelf)this);
         }
     }
 
@@ -119,8 +119,8 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     {
         if (_createdByBridge is not null && memento is IHasAccountability ha)
         {
-            _createdByBridge.Write((TSelf)this, ha.BoxedCreatedBy);
-            _modifiedByBridge!.Write((TSelf)this, ha.BoxedModifiedBy);
+            _createdByBridge.Write((TSelf)this, ha.CreatedBy);
+            _modifiedByBridge!.Write((TSelf)this, ha.ModifiedBy);
         }
     }
 
@@ -129,7 +129,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
         if (_deletedByBridge is not null && memento is IHasSoftDelete hsd)
         {
             hsd.DeletedAtUtc = (DateTimeOffset?)_deletedAtReader?.Invoke((TSelf)this);
-            hsd.BoxedDeletedBy = _deletedByBridge.Read((TSelf)this);
+            hsd.DeletedBy = _deletedByBridge.Read((TSelf)this);
         }
     }
 
@@ -138,7 +138,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
         if (_deletedByBridge is not null && memento is IHasSoftDelete hsd)
         {
             _deletedAtWriter?.Invoke((TSelf)this, hsd.DeletedAtUtc);
-            _deletedByBridge.Write((TSelf)this, hsd.BoxedDeletedBy);
+            _deletedByBridge.Write((TSelf)this, hsd.DeletedBy);
         }
     }
 

@@ -1,13 +1,14 @@
 namespace Yaf.Domain.Interfaces;
 
 /// <summary>
-/// Non-generic base interface for mementos that carry soft-deletion fields.
-/// Provides runtime access to the deletion timestamp and boxed actor identity
-/// for automatic soft-delete handling in entity base classes.
+/// Enforces soft-deletion properties on memento types, enabling base entity classes
+/// to handle soft-delete snapshot, restore, and hydrate automatically.
 /// </summary>
 /// <remarks>
 /// When present on a memento, infrastructure auto-applies an EF Core global query filter:
 /// <c>WHERE DeletedAtUtc IS NULL</c>.
+/// The actor identity is stored as a <see cref="Guid"/> value. The typed ID wrapper
+/// (e.g., <c>UserId</c>) is reconstructed during hydration.
 /// </remarks>
 public interface IHasSoftDelete
 {
@@ -17,37 +18,7 @@ public interface IHasSoftDelete
     DateTimeOffset? DeletedAtUtc { get; set; }
 
     /// <summary>
-    /// The <see cref="Type"/> of the actor identity value (e.g., <c>typeof(Guid)</c>).
-    /// </summary>
-    Type ActorIdType { get; }
-
-    /// <summary>
-    /// The deleter's identity value boxed as <see cref="object"/>.
-    /// <see langword="null"/> if not deleted or if actor tracking is not used.
-    /// </summary>
-    object? BoxedDeletedBy { get; set; }
-}
-
-/// <summary>
-/// Enforces typed soft-deletion properties on memento types, enabling base entity classes
-/// to handle soft-delete snapshot, restore, and hydrate automatically.
-/// </summary>
-/// <typeparam name="T">The backing value type of the actor identity (e.g., <see cref="Guid"/>).</typeparam>
-public interface IHasSoftDelete<T> : IHasSoftDelete
-    where T : struct, IEquatable<T>
-{
-    /// <summary>
     /// The deleter's identity value. <see langword="null"/> if not deleted.
     /// </summary>
-    T? DeletedBy { get; set; }
-
-    /// <inheritdoc />
-    Type IHasSoftDelete.ActorIdType => typeof(T);
-
-    /// <inheritdoc />
-    object? IHasSoftDelete.BoxedDeletedBy
-    {
-        get => DeletedBy;
-        set => DeletedBy = Helpers.BoxingHelper.Unbox<T>(value);
-    }
+    Guid? DeletedBy { get; set; }
 }

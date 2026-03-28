@@ -19,10 +19,23 @@ public interface ITimestamped
     /// <summary>
     /// When this entity was created (UTC). <see langword="null"/> before first persistence.
     /// </summary>
-    DateTimeOffset? CreatedAtUtc { get; set; }
+    DateTimeOffset? CreatedAtUtc { get; }
 
     /// <summary>
     /// When this entity was last modified (UTC). <see langword="null"/> until first modification.
     /// </summary>
+    DateTimeOffset? ModifiedAtUtc { get; }
+}
+
+/// <summary>
+/// Internal write-side complement to <see cref="ITimestamped"/> for infrastructure hydration.
+/// Entities implement both; domain consumers see only the read-only <see cref="ITimestamped"/>.
+/// </summary>
+internal interface ITimestampedWriter
+{
+    /// <inheritdoc cref="ITimestamped.CreatedAtUtc"/>
+    DateTimeOffset? CreatedAtUtc { get; set; }
+
+    /// <inheritdoc cref="ITimestamped.ModifiedAtUtc"/>
     DateTimeOffset? ModifiedAtUtc { get; set; }
 }

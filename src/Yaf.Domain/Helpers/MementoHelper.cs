@@ -79,19 +79,19 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     /// </summary>
     internal static void HydrateCrossCutting(TSelf entity, TMemento memento)
     {
-        if (entity is ITimestamped ts && memento is IHasTimestamps hts)
+        if (entity is ITimestampedWriter ts && memento is IHasTimestamps hts)
         {
             ts.CreatedAtUtc = hts.CreatedAtUtc;
             ts.ModifiedAtUtc = hts.ModifiedAtUtc;
         }
 
-        if (entity is IAccountable acc && memento is IHasAccountability ha)
+        if (entity is IAccountableWriter acc && memento is IHasAccountability ha)
         {
             acc.CreatedBy = ha.CreatedBy.HasValue ? new ActorId(ha.CreatedBy.Value) : null;
             acc.ModifiedBy = ha.ModifiedBy.HasValue ? new ActorId(ha.ModifiedBy.Value) : null;
         }
 
-        if (entity is ISoftDeletable sd && memento is IHasSoftDelete hsd)
+        if (entity is ISoftDeletableWriter sd && memento is IHasSoftDelete hsd)
         {
             sd.DeletedAtUtc = hsd.DeletedAtUtc;
             sd.DeletedBy = hsd.DeletedBy.HasValue ? new ActorId(hsd.DeletedBy.Value) : null;

@@ -34,10 +34,23 @@ public interface ISoftDeletable
     /// <summary>
     /// When this entity was soft-deleted (UTC). <see langword="null"/> if not deleted.
     /// </summary>
-    DateTimeOffset? DeletedAtUtc { get; set; }
+    DateTimeOffset? DeletedAtUtc { get; }
 
     /// <summary>
     /// The actor who soft-deleted this entity. <see langword="null"/> if not deleted.
     /// </summary>
+    ActorId? DeletedBy { get; }
+}
+
+/// <summary>
+/// Internal write-side complement to <see cref="ISoftDeletable"/> for infrastructure hydration.
+/// Entities implement both; domain consumers see only the read-only <see cref="ISoftDeletable"/>.
+/// </summary>
+internal interface ISoftDeletableWriter
+{
+    /// <inheritdoc cref="ISoftDeletable.DeletedAtUtc"/>
+    DateTimeOffset? DeletedAtUtc { get; set; }
+
+    /// <inheritdoc cref="ISoftDeletable.DeletedBy"/>
     ActorId? DeletedBy { get; set; }
 }

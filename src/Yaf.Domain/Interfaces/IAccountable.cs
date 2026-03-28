@@ -22,10 +22,23 @@ public interface IAccountable
     /// <summary>
     /// The actor who created this entity. <see langword="null"/> before first persistence.
     /// </summary>
-    ActorId? CreatedBy { get; set; }
+    ActorId? CreatedBy { get; }
 
     /// <summary>
     /// The actor who last modified this entity. <see langword="null"/> until first modification.
     /// </summary>
+    ActorId? ModifiedBy { get; }
+}
+
+/// <summary>
+/// Internal write-side complement to <see cref="IAccountable"/> for infrastructure hydration.
+/// Entities implement both; domain consumers see only the read-only <see cref="IAccountable"/>.
+/// </summary>
+internal interface IAccountableWriter
+{
+    /// <inheritdoc cref="IAccountable.CreatedBy"/>
+    ActorId? CreatedBy { get; set; }
+
+    /// <inheritdoc cref="IAccountable.ModifiedBy"/>
     ActorId? ModifiedBy { get; set; }
 }

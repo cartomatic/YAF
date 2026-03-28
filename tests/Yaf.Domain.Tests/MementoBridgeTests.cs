@@ -34,9 +34,9 @@ internal class OrderMemento : IOrderMemento
 
 internal class Order :
     Entity<TestOrderId, Order, IOrderMemento>,
-    IAccountable,
-    ITimestamped,
-    ISoftDeletable,
+    IAccountable, IAccountableWriter,
+    ITimestamped, ITimestampedWriter,
+    ISoftDeletable, ISoftDeletableWriter,
     ITenantScoped
 {
     public string Description { get; private set; } = string.Empty;

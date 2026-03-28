@@ -5,50 +5,51 @@ using Yaf.Domain.Interfaces;
 namespace Yaf.Domain.Helpers;
 
 /// <summary>
-/// Shared memento orchestration logic used by both <see cref="Entity{TId,TSelf,TMemento}"/>
-/// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> to avoid duplication.
+/// Shared memento building blocks used by both <see cref="Entity{TId,TSelf,TMemento}"/>
+/// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> for identity bridging and
+/// conditional delegate construction.
 /// </summary>
 internal static class MementoHelper<TId, TSelf, TMemento>
     where TId : ITypedId
     where TSelf : Entity<TId>
     where TMemento : class
 {
-    private static readonly Func<object, TId>? _idFactory = BuildIdFactory();
+    private static readonly Func<Guid, TId>? _idFactory = BuildIdFactory();
 
     // --- Identity ---
 
     /// <summary>
-    /// Writes the entity's identity to the memento if types are compatible.
+    /// Writes the entity's identity to the memento if the memento implements <see cref="IHasIdentity"/>.
     /// </summary>
     internal static void WriteIdentity(TMemento memento, TId id)
     {
-        if (memento is IHasIdentity hasIdentity && hasIdentity.IdentityType == TId.IdentityType)
+        if (memento is IHasIdentity hasIdentity)
         {
-            hasIdentity.BoxedId = id.BoxedValue;
+            hasIdentity.Id = id.Value;
         }
     }
 
     /// <summary>
-    /// Reads the identity from the memento and constructs a <typeparamref name="TId"/> if types are compatible.
+    /// Reads the identity from the memento and constructs a <typeparamref name="TId"/>.
     /// </summary>
     internal static (TId? id, bool success) ReadIdentity(TMemento memento)
     {
-        if (memento is IHasIdentity hasIdentity && hasIdentity.IdentityType == TId.IdentityType)
+        if (memento is IHasIdentity hasIdentity)
         {
             if (_idFactory is null)
             {
                 throw new InvalidOperationException(
                     $"{typeof(TId).Name} must have a public constructor accepting a single " +
-                    $"{TId.IdentityType.Name} parameter for automatic identity restoration. " +
-                    $"Use positional record syntax: record {typeof(TId).Name}({TId.IdentityType.Name} Value)");
+                    $"Guid parameter for automatic identity restoration. " +
+                    $"Use positional record syntax: record {typeof(TId).Name}(Guid Value)");
             }
 
-            if (hasIdentity.BoxedId is null)
+            if (hasIdentity.Id is null)
             {
                 return (default, true);
             }
 
-            return (_idFactory(hasIdentity.BoxedId), true);
+            return (_idFactory(hasIdentity.Id.Value), true);
         }
 
         return (default, false);
@@ -102,18 +103,17 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     internal static TypedIdBridge<TSelf>? BuildBridge(Type openGenericDomain, Type mementoInterface, string propertyName) =>
         TypedIdBridge<TSelf>.TryBuild<TMemento>(openGenericDomain, mementoInterface, propertyName);
 
-    private static Func<object, TId>? BuildIdFactory()
+    private static Func<Guid, TId>? BuildIdFactory()
     {
-        var backingType = TId.IdentityType;
-        var constructor = typeof(TId).GetConstructor([backingType]);
+        var constructor = typeof(TId).GetConstructor([typeof(Guid)]);
 
         if (constructor is null)
         {
             return null;
         }
 
-        var param = Expression.Parameter(typeof(object), "value");
-        var body = Expression.New(constructor, Expression.Convert(param, backingType));
-        return Expression.Lambda<Func<object, TId>>(body, param).Compile();
+        var param = Expression.Parameter(typeof(Guid), "value");
+        var body = Expression.New(constructor, param);
+        return Expression.Lambda<Func<Guid, TId>>(body, param).Compile();
     }
 }

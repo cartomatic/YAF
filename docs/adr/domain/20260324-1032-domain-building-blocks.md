@@ -25,7 +25,7 @@ Yaf.Domain provides a set of DDD tactical building blocks as base types and inte
 
 | Option | Assessment |
 |--------|------------|
-| **`Entity<TId>` with generic typed ID** | **Selected.** Consumer defines their own ID type (e.g., `OrderId : TypedId<Guid>`). Equality by ID. Generic allows any backing type. |
+| **`Entity<TId>` with generic typed ID** | **Selected.** Consumer defines their own ID type (e.g., `OrderId : TypedId`). Equality by ID. All typed IDs are Guid-backed. |
 | `Entity` with `Guid` ID | Simpler but loses type safety. `Guid orderId` and `Guid customerId` are interchangeable at compile time. |
 | `Entity` with `string` ID | Too loose. No structural guarantees. |
 
@@ -33,7 +33,7 @@ Yaf.Domain provides a set of DDD tactical building blocks as base types and inte
 
 | Option | Assessment |
 |--------|------------|
-| **`TypedId<T>` as an abstract record class with `ITypedId`/`ITypedId<T>` interface hierarchy** | **Selected.** Record class allows inheritance (`OrderId : TypedId<Guid>`), which record structs do not support. `ITypedId` non-generic marker enables `where TId : ITypedId` constraints on `Entity<TId>` without requiring a second type parameter. `ITypedId<T>` exposes `T Value` for infrastructure access. `T` is constrained to `IEquatable<T>` for proper equality semantics. Heap allocation is an acceptable tradeoff — typed IDs are typically short-lived parameters or entity properties. |
+| **`TypedId` as an abstract record class with `ITypedId` interface (Guid-only)** | **Selected.** Record class allows inheritance (`OrderId : TypedId`), which record structs do not support. `ITypedId` exposes `Guid Value` and enables `where TId : ITypedId` constraints on `Entity<TId>`. All typed IDs use `Guid` as the backing type — external systems with non-Guid identifiers remap at the anti-corruption layer boundary. Heap allocation is an acceptable tradeoff — typed IDs are typically short-lived parameters or entity properties. |
 | Record struct typed IDs | Value type avoids heap allocation, but record structs cannot be inherited — `OrderId : TypedId<Guid>` would not compile. Also cannot serve as a constraint base without an interface. |
 | Source-generated typed IDs (e.g., StronglyTypedId library) | External dependency in Domain — violates zero-dependency rule. |
 
@@ -89,20 +89,20 @@ All options above as a cohesive set. The building blocks work together: `Entity<
 | **`Entity<TId>`** | Base for all entities. Carries typed identity. | By ID | Private constructor, static factory or builder |
 | **`AggregateRoot<TId>`** | Entity that is a consistency boundary. Owns domain event collection. | By ID | Private constructor, static factory or builder |
 | **`ValueObject` (record)** | Immutable value. No identity. | By value (record equality) | Constructor or static factory |
-| **`TypedId<T>`** | Strongly-typed ID wrapper. Abstract record class with `ITypedId`/`ITypedId<T>` interfaces. | By value (record equality) | Constructor: `new OrderId(guid)` or `id.Value` for extraction |
+| **`TypedId`** | Strongly-typed ID wrapper (Guid-backed). Abstract record class implementing `ITypedId`. | By value (record equality) | Constructor: `new OrderId(guid)` or `id.Value` for extraction |
 | **`Enumeration<TEnum>`** | Smart enum — Id + Name + behavior. | By Id | Static instances (sealed, predefined set) |
 
-### IHasIdentity\<T\>
+### IHasIdentity
 
-- `IHasIdentity` — non-generic base interface with `Type IdentityType` and `object BoxedId { get; set; }` for runtime identity bridging
-- `IHasIdentity<T> : IHasIdentity where T : IEquatable<T>` — generic interface enforcing `T Id { get; set; }`. Provides default interface implementations (DIM) for `IdentityType` (`typeof(T)`) and `BoxedId` (delegates to `Id`), so consumers only need to implement `T Id`
-- Mementos for entities and aggregate roots should implement `IHasIdentity<T>` so the base memento classes can handle identity automatically
-- Consumer usage: `interface IOrderMemento : IHasIdentity<Guid> { string Name { get; set; } }`
+- `IHasIdentity` — single interface with `Guid? Id { get; set; }` for identity bridging between entities and mementos
+- All typed IDs use `Guid` as the backing type, so there is no need for a generic variant or boxing layer
+- Mementos for entities and aggregate roots should implement `IHasIdentity` so the base memento classes can handle identity automatically
+- Consumer usage: `interface IOrderMemento : IHasIdentity { string Name { get; set; } }`
 
 ### Entity\<TId\>
 
 - Generic `TId` constrained to `ITypedId` — prevents raw primitives like `Entity<Guid>`. Application-generated IDs (e.g., `Guid.NewGuid()` in factory methods) are the mandated pattern — database-generated sequential IDs are not a first-class pattern
-- Memento-capable variant: `Entity<TId, TSelf, TMemento>` (3 type params — no separate `T` param). When `TMemento` implements `IHasIdentity<T>` with a `T` matching `TId`'s backing type, the base class handles Id automatically via `IHasIdentity.BoxedId` and `ITypedId.BoxedValue`, using `Activator.CreateInstance` for Id reconstruction. Type compatibility is checked via `TId.IdentityType == hasIdentity.IdentityType` (static abstract, no reflection). No abstract Get/Set/Create Id methods needed
+- Memento-capable variant: `Entity<TId, TSelf, TMemento>` (3 type params). When `TMemento` implements `IHasIdentity`, the base class handles Id automatically — reading `Guid` from the memento, constructing the typed ID via a compiled factory delegate. No abstract Get/Set/Create Id methods needed
 - Equality by ID — two entities with the same ID are equal regardless of other property values
 - Protected constructor — only accessible to subclasses and factory methods
 - Public getters with private setters — application layer can read state for DTO projection; mutation only through explicit domain methods that enforce invariants
@@ -123,14 +123,24 @@ All options above as a cohesive set. The building blocks work together: `Entity<
 - All properties are positional or init-only
 - Consumer defines: `public record Address(string Street, string City, string PostalCode) : ValueObject;`
 
-### TypedId\<T\>
+### TypedId
 
-- `ITypedId` — non-generic base interface with `static abstract Type IdentityType` (for compile-time generic dispatch) and `object BoxedValue` (for runtime identity bridging). Used as a generic constraint (`where TId : ITypedId`)
-- `ITypedId<T> : ITypedId where T : IEquatable<T>` — generic interface exposing `T Value` for infrastructure access (e.g., EF Core value converters)
-- `abstract record TypedId<T> : ITypedId<T> where T : IEquatable<T>` — abstract record class with explicit constructor (not positional), provides value equality and `ToString()` via record semantics. Implements `IdentityType` as `typeof(T)` and `BoxedValue` as `Value!`
-- Consumer creates their own: `public record OrderId(Guid Value) : TypedId<Guid>(Value)`
+- `ITypedId` — interface with `Guid Value { get; }`. Used as a generic constraint (`where TId : ITypedId`)
+- `abstract record TypedId : ITypedId` — abstract record class implementing `ITypedId`, provides value equality and `ToString()` via record semantics. All typed IDs are backed by `Guid` — external systems with non-Guid identifiers remap at the anti-corruption layer boundary
+- Consumer creates their own: `public record OrderId(Guid Value) : TypedId(Value)`
 - No implicit/explicit conversion operators — consumers use `id.Value` or `new OrderId(guid)`
 - Infrastructure maps to primitive types via EF Core value converters
+
+#### Boundary remapping for non-Guid external identifiers
+
+External systems may use non-Guid identifiers (auto-increment ints, string slugs, composite keys). These are remapped at the anti-corruption layer boundary — the Infrastructure or API adapter layer, not the Domain:
+
+- The entity's identity within YAF is always a `Guid`, generated by the application (e.g., `Guid.NewGuid()` in a factory method)
+- External identifiers are stored as regular properties on the entity (e.g., `string ExternalOrderRef { get; private set; }`) or in a dedicated correlation/lookup table
+- Inbound: the adapter layer looks up or creates the internal Guid for a given external ID
+- Outbound: the adapter layer maps the internal Guid back to the external ID format
+
+This keeps the domain model clean and decoupled from external identity schemes.
 
 ### Enumeration\<TEnum\>
 

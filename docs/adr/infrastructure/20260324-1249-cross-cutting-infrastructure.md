@@ -58,7 +58,7 @@ Yaf.Infrastructure provides implementations for several cross-cutting concerns t
 
 | Option | Assessment |
 |--------|------------|
-| **`ISoftDeletable<TActorId>` on domain object + `IHasSoftDelete<T>` on memento + EF Core global query filter** | **Selected.** Opt-in soft-delete via marker interface. `DeletedAtUtc` set on main table, global filter `WHERE DeletedAtUtc IS NULL` applied. Standalone — does not inherit ITimestamped or IAccountable. |
+| **`ISoftDeletable<TActorId>` on domain object + `IHasSoftDelete` on memento + EF Core global query filter** | **Selected.** Opt-in soft-delete via marker interface. `DeletedAtUtc` set on main table, global filter `WHERE DeletedAtUtc IS NULL` applied. Standalone — does not inherit ITimestamped or IAccountable. |
 | Per-table `IsDeleted` flag (forced on all entities) | Pollutes every query. Not opt-in. |
 | Soft-delete baked into `Entity<TId>` | Forces soft-delete on all entities. Most entities don't need it. |
 
@@ -110,12 +110,12 @@ All six concerns as opt-in, interface-based infrastructure features: accountabil
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `IAccountable<TActorId>` | Domain | Interface declaring `CreatedBy`, `ModifiedBy` with generic actor ID type. Non-generic `IAccountable` marker for runtime discovery. |
-| `IHasAccountability<T>` | Domain (memento-side) | Memento interface with `T CreatedBy`, `T ModifiedBy` + DIM for boxed access. |
+| `IAccountable<TActorId>` | Domain | Interface declaring `CreatedBy`, `ModifiedBy` with generic actor ID type. |
+| `IHasAccountability` | Domain (memento-side) | Memento interface with `Guid? CreatedBy`, `Guid? ModifiedBy`. |
 | Auto-population | Infrastructure | `YafDbContext.SaveChanges` reads from `IIdentityContextProvider` and sets fields on mementos |
 
-- `TActorId` is consumer-defined — `UserId`, `EmployeeId`, `ServiceAccountId`, etc.
-- Mementos store actor IDs as `Guid` (flattened from typed ID) via `IHasAccountability<Guid>`
+- `TActorId` is consumer-defined — `UserId`, `EmployeeId`, `ServiceAccountId`, etc. All backed by `Guid`.
+- Mementos store actor IDs as `Guid?` directly via `IHasAccountability`
 - Both `CreatedBy` and `ModifiedBy` are nullable — `null` means the entity has not yet completed a persistence round-trip
 - Infrastructure must throw if user context is not provided when saving an accountable entity
 - Deletion tracking is a separate concern — see `ISoftDeletable` below
@@ -137,9 +137,8 @@ All six concerns as opt-in, interface-based infrastructure features: accountabil
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `ISoftDeletable` | Domain | Non-generic marker. Triggers soft-delete infrastructure behavior. |
-| `ISoftDeletable<TActorId>` | Domain | Generic variant with `DeletedAtUtc?` and `TActorId? DeletedBy`. |
-| `IHasSoftDelete` / `IHasSoftDelete<T>` | Domain (memento-side) | Memento interface with `DeletedAtUtc?`, `T DeletedBy` + DIM for boxed access. |
+| `ISoftDeletable<TActorId>` | Domain | Interface with `DeletedAtUtc?` and `TActorId? DeletedBy`. |
+| `IHasSoftDelete` | Domain (memento-side) | Memento interface with `DateTimeOffset? DeletedAtUtc`, `Guid? DeletedBy`. |
 | Global query filter | Infrastructure | `WHERE DeletedAtUtc IS NULL` auto-applied to all mementos implementing `IHasSoftDelete`. |
 | Auto-population | Infrastructure | `YafDbContext.SaveChanges` sets `DeletedAtUtc` and `DeletedBy` on soft-delete. |
 
@@ -239,9 +238,9 @@ Load: Database → EF Core → decrypt [Encryptable] properties → Hydrate(meme
 
 | Concern | Activated By | Applies To |
 |---------|-------------|------------|
-| Accountability | `IAccountable<TActorId>` on domain object + `IHasAccountability<T>` on memento | `CreatedBy`, `ModifiedBy` auto-populated from `IIdentityContextProvider` |
+| Accountability | `IAccountable<TActorId>` on domain object + `IHasAccountability` on memento | `CreatedBy`, `ModifiedBy` auto-populated from `IIdentityContextProvider` |
 | Timestamping | `ITimestamped` on domain object + `IHasTimestamps` on memento | `CreatedAtUtc`, `ModifiedAtUtc` auto-populated from system clock |
-| Soft-deletion | `ISoftDeletable<TActorId>` on domain object + `IHasSoftDelete<T>` on memento | `DeletedAtUtc`, `DeletedBy` set; global query filter applied |
+| Soft-deletion | `ISoftDeletable<TActorId>` on domain object + `IHasSoftDelete` on memento | `DeletedAtUtc`, `DeletedBy` set; global query filter applied |
 | Optimistic concurrency | `IHasVersionInfo` on memento | `Version` (Guid) auto-configured as EF Core concurrency token |
 | Versioning + Graveyard | `IHasVersionHistory` on memento | Memento snapshot stored on each save; deleted objects moved to graveyard |
 | Encryption | `[Encryptable]` on memento properties | Marked properties encrypted/decrypted during save/load |

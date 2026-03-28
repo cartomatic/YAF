@@ -5,18 +5,18 @@ namespace Yaf.Domain.Tests;
 
 #region Test Types
 
-internal record UserId(Guid Value) : TypedId<Guid>(Value);
+internal record UserId(Guid Value) : TypedId(Value);
 
-internal record TestOrderId(Guid Value) : TypedId<Guid>(Value);
+internal record TestOrderId(Guid Value) : TypedId(Value);
 
 // --- Full entity: all cross-cutting interfaces, manual mapping ---
 
 internal interface IOrderMemento :
-    IHasIdentity<Guid>,
-    IHasAccountability<Guid>,
+    IHasIdentity,
+    IHasAccountability,
     IHasTimestamps,
-    IHasSoftDelete<Guid>,
-    IHasTenantId<Guid>
+    IHasSoftDelete,
+    IHasTenantId
 {
     string Description { get; set; }
 }
@@ -83,7 +83,7 @@ internal class Order :
 
 // --- Plain entity without cross-cutting interfaces (backward compat) ---
 
-internal interface IPlainMemento : IHasIdentity<Guid>
+internal interface IPlainMemento : IHasIdentity
 {
     string Label { get; set; }
 }

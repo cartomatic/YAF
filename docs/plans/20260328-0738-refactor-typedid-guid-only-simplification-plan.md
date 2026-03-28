@@ -1,7 +1,7 @@
 ---
 title: "Simplify TypedId to Guid-only backing type"
 type: refactor
-status: active
+status: completed
 date: 2026-03-28
 depends-on: none
 blocks: 20260328-XXXX-feat-domain-event-interfaces-plan

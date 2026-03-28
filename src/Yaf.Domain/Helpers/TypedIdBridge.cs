@@ -5,57 +5,47 @@ using Yaf.Domain.Interfaces;
 namespace Yaf.Domain.Helpers;
 
 /// <summary>
-/// Compiled bridge for reading/writing typed ID properties between entities and mementos.
+/// Compiled bridge for reading/writing a single typed ID property between an entity and a memento.
 /// Handles boxing (entity → primitive via <see cref="ITypedId.BoxedValue"/>) and
 /// unboxing (primitive → typed ID via cached constructor factory).
 /// </summary>
 internal sealed class TypedIdBridge<TSelf>
 {
-    private readonly Func<TSelf, object?> _reader1;
-    private readonly Func<TSelf, object?>? _reader2;
-    private readonly Action<TSelf, object?> _writer1;
-    private readonly Action<TSelf, object?>? _writer2;
+    private readonly Func<TSelf, object?> _reader;
+    private readonly Action<TSelf, object?> _writer;
     private readonly Func<object, object> _factory;
 
-    private TypedIdBridge(
-        Func<TSelf, object?> reader1, Func<TSelf, object?>? reader2,
-        Action<TSelf, object?> writer1, Action<TSelf, object?>? writer2,
-        Func<object, object> factory)
+    private TypedIdBridge(Func<TSelf, object?> reader, Action<TSelf, object?> writer, Func<object, object> factory)
     {
-        _reader1 = reader1;
-        _reader2 = reader2;
-        _writer1 = writer1;
-        _writer2 = writer2;
+        _reader = reader;
+        _writer = writer;
         _factory = factory;
     }
 
     /// <summary>
-    /// Reads typed ID properties, extracts their primitive BoxedValue.
+    /// Reads a typed ID property and extracts its primitive BoxedValue.
+    /// Returns <see langword="null"/> if the property value is null.
     /// </summary>
-    internal (object? first, object? second) ReadPair(TSelf entity)
+    internal object? Read(TSelf entity)
     {
-        var v1 = _reader1(entity);
-        var v2 = _reader2?.Invoke(entity);
-        return (
-            v1 is ITypedId t1 ? t1.BoxedValue : null,
-            v2 is ITypedId t2 ? t2.BoxedValue : null);
+        var value = _reader(entity);
+        return value is ITypedId typedId ? typedId.BoxedValue : null;
     }
 
     /// <summary>
-    /// Reconstructs typed IDs from primitive values and sets them on the entity.
+    /// Reconstructs a typed ID from a primitive value and sets it on the entity.
+    /// Sets <see langword="null"/> if the input is null.
     /// </summary>
-    internal void WritePair(TSelf entity, object? first, object? second)
-    {
-        _writer1(entity, first is null ? null : _factory(first));
-        _writer2?.Invoke(entity, second is null ? null : _factory(second));
-    }
+    internal void Write(TSelf entity, object? boxedPrimitive) =>
+        _writer(entity, boxedPrimitive is null ? null : _factory(boxedPrimitive));
 
     /// <summary>
-    /// Builds a bridge if TSelf implements the open generic domain interface and TMemento implements the memento interface.
+    /// Builds a bridge for the given property if <typeparamref name="TSelf"/> implements
+    /// the open generic domain interface and <c>TMemento</c> implements the memento interface.
     /// Returns <see langword="null"/> if the interfaces are not implemented.
     /// </summary>
     internal static TypedIdBridge<TSelf>? TryBuild<TMemento>(
-        Type openGenericDomain, Type mementoInterface, string prop1Name, string? prop2Name = null)
+        Type openGenericDomain, Type mementoInterface, string propertyName)
     {
         var entityType = typeof(TSelf);
         if (!mementoInterface.IsAssignableFrom(typeof(TMemento)))
@@ -67,19 +57,10 @@ internal sealed class TypedIdBridge<TSelf>
 
         var typedIdType = genericInterface.GetGenericArguments()[0];
         var factory = TypedIdFactoryCache.GetOrBuild(typedIdType);
+        var reader = ReflectionHelper.BuildPropertyReader<TSelf>(propertyName);
+        var writer = ReflectionHelper.BuildPropertyWriter<TSelf>(propertyName);
 
-        var reader1 = ReflectionHelper.BuildPropertyReader<TSelf>(prop1Name);
-        var writer1 = ReflectionHelper.BuildPropertyWriter<TSelf>(prop1Name);
-
-        Func<TSelf, object?>? reader2 = null;
-        Action<TSelf, object?>? writer2 = null;
-        if (prop2Name is not null)
-        {
-            reader2 = ReflectionHelper.BuildPropertyReader<TSelf>(prop2Name);
-            writer2 = ReflectionHelper.BuildPropertyWriter<TSelf>(prop2Name);
-        }
-
-        return new TypedIdBridge<TSelf>(reader1, reader2, writer1, writer2, factory);
+        return new TypedIdBridge<TSelf>(reader, writer, factory);
     }
 }
 

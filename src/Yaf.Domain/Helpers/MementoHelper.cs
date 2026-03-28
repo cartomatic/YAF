@@ -95,11 +95,12 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             : null;
 
     /// <summary>
-    /// Builds a <see cref="TypedIdBridge{TSelf}"/> if <typeparamref name="TSelf"/> implements
-    /// the open generic domain interface and <typeparamref name="TMemento"/> implements the memento interface.
+    /// Builds a <see cref="TypedIdBridge{TSelf}"/> for a single typed ID property if
+    /// <typeparamref name="TSelf"/> implements the open generic domain interface and
+    /// <typeparamref name="TMemento"/> implements the memento interface.
     /// </summary>
-    internal static TypedIdBridge<TSelf>? BuildBridge(Type openGenericDomain, Type mementoInterface, string prop1, string? prop2 = null) =>
-        TypedIdBridge<TSelf>.TryBuild<TMemento>(openGenericDomain, mementoInterface, prop1, prop2);
+    internal static TypedIdBridge<TSelf>? BuildBridge(Type openGenericDomain, Type mementoInterface, string propertyName) =>
+        TypedIdBridge<TSelf>.TryBuild<TMemento>(openGenericDomain, mementoInterface, propertyName);
 
     private static Func<object, TId>? BuildIdFactory()
     {

@@ -6,7 +6,7 @@ namespace Yaf.Domain;
 
 /// <summary>
 /// Base record for value objects that support memento-based persistence.
-/// Concrete types must override <see cref="SnapshotCore"/>, <see cref="RestoreCore"/>,
+/// Concrete types must override <see cref="SnapshotCore"/>, <see cref="HydrateCore"/>,
 /// and <see cref="GetValidationErrors"/>.
 /// </summary>
 /// <remarks>
@@ -31,7 +31,7 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSel
     {
         ArgumentNullException.ThrowIfNull(memento);
         var instance = (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
-        instance.RestoreCore(memento);
+        instance.HydrateCore(memento);
         instance.ThrowIfInvalid();
         return instance;
     }
@@ -43,10 +43,10 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSel
     protected abstract void SnapshotCore(TMemento memento);
 
     /// <summary>
-    /// Restores the state of this value object from the provided memento.
+    /// Hydrates the state of this value object from the provided memento.
     /// </summary>
-    /// <param name="memento">The memento instance to restore from.</param>
-    protected abstract void RestoreCore(TMemento memento);
+    /// <param name="memento">The memento instance to hydrate from.</param>
+    protected abstract void HydrateCore(TMemento memento);
 
     /// <summary>
     /// Validates the state of this value object after restoration from a memento.

@@ -77,6 +77,10 @@ See [dev setup](docs/general/dev-setup.md) for full setup instructions. In short
 - Contributors need: .NET 10+ SDK, `csharp-ls` global tool (`dotnet tool install -g csharp-ls`), GitHub CLI
 - Personal overrides go in `.claude/settings.local.json` (git-ignored)
 
+## Contributing Conventions
+
+See [contributing conventions](docs/general/contributing-conventions.md) for workflow, code quality, and documentation artifact conventions that apply to all contributors.
+
 ## Current State
 
-The repository is in its initial phase — no source code exists yet. Only the project manifesto (`docs/general/what-and-why-or-the-other-way-round.md`) and scaffolding files are present.
+The repository has the domain layer (`Yaf.Domain`) with DDD building blocks: `TypedId`, `Entity`, `AggregateRoot`, `ValueObject`, memento pattern, and cross-cutting concern interfaces (accountability, timestamps, soft-delete, tenant, versioning). 90 tests. No infrastructure or API layers yet.

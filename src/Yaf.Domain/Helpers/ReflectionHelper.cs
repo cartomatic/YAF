@@ -4,35 +4,10 @@ using System.Reflection;
 namespace Yaf.Domain.Helpers;
 
 /// <summary>
-/// Compiled expression-tree helpers for reading and writing properties at runtime.
+/// Compiled expression-tree helper for writing properties at runtime.
 /// </summary>
 internal static class ReflectionHelper
 {
-    /// <summary>
-    /// Finds a closed generic interface on a type (e.g., <c>IAccountable&lt;UserId&gt;</c>
-    /// from <c>typeof(IAccountable&lt;&gt;)</c>).
-    /// </summary>
-    internal static Type? FindGenericInterface(Type type, Type openGenericInterface) =>
-        Array.Find(
-            type.GetInterfaces(),
-            i => i.IsGenericType && i.GetGenericTypeDefinition() == openGenericInterface);
-
-    /// <summary>
-    /// Builds a compiled reader for a property on <typeparamref name="TEntity"/>.
-    /// Returns the property value boxed as <see cref="object"/>?.
-    /// </summary>
-    internal static Func<TEntity, object?> BuildPropertyReader<TEntity>(string propertyName)
-    {
-        var entityType = typeof(TEntity);
-        var prop = entityType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
-            ?? throw MissingPropertyError(entityType, propertyName);
-
-        var entityParam = Expression.Parameter(entityType, "entity");
-        var body = Expression.Convert(Expression.Property(entityParam, prop), typeof(object));
-
-        return Expression.Lambda<Func<TEntity, object?>>(body, entityParam).Compile();
-    }
-
     /// <summary>
     /// Builds a compiled writer for a property on <typeparamref name="TEntity"/> from a boxed value.
     /// Handles value types (coalescing null to default) and reference types.

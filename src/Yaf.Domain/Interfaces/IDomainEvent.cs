@@ -8,7 +8,7 @@ namespace Yaf.Domain.Interfaces;
 /// <para>
 /// Domain events are raised by aggregate roots via <c>AddDomainEvent</c> and dispatched
 /// by infrastructure after persistence. Each event is self-describing: it carries
-/// correlation, tenant, user, and activity context so that consumers never need to
+/// correlation, tenant, actor, and activity context so that consumers never need to
 /// look up context separately.
 /// </para>
 /// <para>
@@ -20,7 +20,7 @@ namespace Yaf.Domain.Interfaces;
 /// For events that carry a typed data payload, use <see cref="IDomainEvent{T}"/>.
 /// </para>
 /// </remarks>
-public interface IDomainEvent : ICorrelated, ITenantScoped<TenantId>, IUserScoped, IActivityScoped
+public interface IDomainEvent : ICorrelated, ITenantScoped, IActorScoped, IActivityScoped
 {
     /// <summary>
     /// The unique identifier of this event instance.

@@ -11,7 +11,7 @@ namespace Yaf.Domain.Interfaces;
 /// <see cref="ModifiedAtUtc"/> on every subsequent save. All times are UTC.
 /// </para>
 /// <para>
-/// Deletion timestamps are a separate concern — see <see cref="ISoftDeletable{TActorId}"/>.
+/// Deletion timestamps are a separate concern — see <see cref="ISoftDeletable"/>.
 /// </para>
 /// </remarks>
 public interface ITimestamped

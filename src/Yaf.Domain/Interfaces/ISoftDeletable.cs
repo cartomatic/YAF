@@ -14,28 +14,22 @@ namespace Yaf.Domain.Interfaces;
 /// </para>
 /// <para>
 /// This interface is standalone — it does not inherit from <see cref="ITimestamped"/>
-/// or <c>IAccountable&lt;TActorId&gt;</c>. Consumers compose interfaces as needed.
+/// or <see cref="IAccountable"/>. Consumers compose interfaces as needed.
 /// </para>
 /// <para>
 /// Soft-deletion coexists with the graveyard (<see cref="IHasVersionHistory"/>):
 /// <list type="bullet">
-///   <item><description><see cref="ISoftDeletable{TActorId}"/> alone: soft delete (row stays, timestamp set)</description></item>
+///   <item><description><see cref="ISoftDeletable"/> alone: soft delete (row stays, timestamp set)</description></item>
 ///   <item><description><see cref="IHasVersionHistory"/> alone: graveyard (row archived)</description></item>
 ///   <item><description>Both: soft delete first, then optional permanent delete to graveyard</description></item>
 ///   <item><description>Neither: hard delete (row gone)</description></item>
 /// </list>
 /// </para>
 /// <para>
-/// Consumers handle soft-delete fields in their <c>SnapshotCore</c>/<c>HydrateCore</c>
-/// implementations.
+/// Uses the framework-provided <see cref="Yaf.Domain.ActorId"/> type.
 /// </para>
 /// </remarks>
-/// <typeparam name="TActorId">
-/// The strongly-typed actor identifier for tracking who performed the deletion.
-/// Must implement <see cref="ITypedId"/>.
-/// </typeparam>
-public interface ISoftDeletable<TActorId>
-    where TActorId : ITypedId
+public interface ISoftDeletable
 {
     /// <summary>
     /// When this entity was soft-deleted (UTC). <see langword="null"/> if not deleted.
@@ -45,5 +39,5 @@ public interface ISoftDeletable<TActorId>
     /// <summary>
     /// The actor who soft-deleted this entity. <see langword="null"/> if not deleted.
     /// </summary>
-    TActorId? DeletedBy { get; }
+    ActorId? DeletedBy { get; }
 }

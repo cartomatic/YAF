@@ -20,11 +20,10 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
 {
     private static readonly Action<TSelf, object?>? _createdAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.CreatedAtUtc));
     private static readonly Action<TSelf, object?>? _modifiedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.ModifiedAtUtc));
-    private static readonly Action<TSelf, object?>? _deletedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
-    private static readonly Func<TSelf, object?>? _deletedAtReader = MementoHelper<TId, TSelf, TMemento>.BuildReader(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedAtUtc));
-    private static readonly TypedIdBridge<TSelf>? _createdByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability.CreatedBy));
-    private static readonly TypedIdBridge<TSelf>? _modifiedByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(IAccountable<>), typeof(IHasAccountability), nameof(IHasAccountability.ModifiedBy));
-    private static readonly TypedIdBridge<TSelf>? _deletedByBridge = MementoHelper<TId, TSelf, TMemento>.BuildBridge(typeof(ISoftDeletable<>), typeof(IHasSoftDelete), nameof(IHasSoftDelete.DeletedBy));
+    private static readonly Action<TSelf, object?>? _createdByWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<IAccountable, IHasAccountability>(nameof(IAccountable.CreatedBy));
+    private static readonly Action<TSelf, object?>? _modifiedByWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<IAccountable, IHasAccountability>(nameof(IAccountable.ModifiedBy));
+    private static readonly Action<TSelf, object?>? _deletedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ISoftDeletable, IHasSoftDelete>(nameof(ISoftDeletable.DeletedAtUtc));
+    private static readonly Action<TSelf, object?>? _deletedByWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ISoftDeletable, IHasSoftDelete>(nameof(ISoftDeletable.DeletedBy));
 
     /// <inheritdoc />
     protected AggregateRoot(TId id) : base(id) { }
@@ -86,7 +85,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     /// <inheritdoc />
     public abstract IReadOnlyCollection<IError> GetValidationErrors();
 
-    // --- Auto-mapped concerns (identical to Entity — shared via TypedIdBridge and ReflectionHelper) ---
+    // --- Auto-mapped concerns (identical to Entity) ---
 
     private void SnapshotTimestamps(TMemento memento)
     {
@@ -108,37 +107,37 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
 
     private void SnapshotAccountability(TMemento memento)
     {
-        if (_createdByBridge is not null && memento is IHasAccountability ha)
+        if (this is IAccountable acc && memento is IHasAccountability ha)
         {
-            ha.CreatedBy = _createdByBridge.Read((TSelf)this);
-            ha.ModifiedBy = _modifiedByBridge!.Read((TSelf)this);
+            ha.CreatedBy = acc.CreatedBy?.Value;
+            ha.ModifiedBy = acc.ModifiedBy?.Value;
         }
     }
 
     private void HydrateAccountability(TMemento memento)
     {
-        if (_createdByBridge is not null && memento is IHasAccountability ha)
+        if (_createdByWriter is not null && memento is IHasAccountability ha)
         {
-            _createdByBridge.Write((TSelf)this, ha.CreatedBy);
-            _modifiedByBridge!.Write((TSelf)this, ha.ModifiedBy);
+            _createdByWriter.Invoke((TSelf)this, ha.CreatedBy.HasValue ? new ActorId(ha.CreatedBy.Value) : null);
+            _modifiedByWriter!.Invoke((TSelf)this, ha.ModifiedBy.HasValue ? new ActorId(ha.ModifiedBy.Value) : null);
         }
     }
 
     private void SnapshotSoftDelete(TMemento memento)
     {
-        if (_deletedByBridge is not null && memento is IHasSoftDelete hsd)
+        if (this is ISoftDeletable sd && memento is IHasSoftDelete hsd)
         {
-            hsd.DeletedAtUtc = (DateTimeOffset?)_deletedAtReader?.Invoke((TSelf)this);
-            hsd.DeletedBy = _deletedByBridge.Read((TSelf)this);
+            hsd.DeletedAtUtc = sd.DeletedAtUtc;
+            hsd.DeletedBy = sd.DeletedBy?.Value;
         }
     }
 
     private void HydrateSoftDelete(TMemento memento)
     {
-        if (_deletedByBridge is not null && memento is IHasSoftDelete hsd)
+        if (_deletedByWriter is not null && memento is IHasSoftDelete hsd)
         {
             _deletedAtWriter?.Invoke((TSelf)this, hsd.DeletedAtUtc);
-            _deletedByBridge.Write((TSelf)this, hsd.DeletedBy);
+            _deletedByWriter.Invoke((TSelf)this, hsd.DeletedBy.HasValue ? new ActorId(hsd.DeletedBy.Value) : null);
         }
     }
 

@@ -5,8 +5,6 @@ namespace Yaf.Domain.Tests;
 
 #region Test Types
 
-internal record UserId(Guid Value) : TypedId(Value);
-
 internal record TestOrderId(Guid Value) : TypedId(Value);
 
 // --- Full entity: all cross-cutting interfaces, manual mapping ---
@@ -36,18 +34,18 @@ internal class OrderMemento : IOrderMemento
 
 internal class Order :
     Entity<TestOrderId, Order, IOrderMemento>,
-    IAccountable<UserId>,
+    IAccountable,
     ITimestamped,
-    ISoftDeletable<UserId>,
-    ITenantScoped<TenantId>
+    ISoftDeletable,
+    ITenantScoped
 {
     public string Description { get; private set; } = string.Empty;
-    public UserId? CreatedBy { get; private set; }
-    public UserId? ModifiedBy { get; private set; }
+    public ActorId? CreatedBy { get; private set; }
+    public ActorId? ModifiedBy { get; private set; }
     public DateTimeOffset? CreatedAtUtc { get; private set; }
     public DateTimeOffset? ModifiedAtUtc { get; private set; }
     public DateTimeOffset? DeletedAtUtc { get; private set; }
-    public UserId? DeletedBy { get; private set; }
+    public ActorId? DeletedBy { get; private set; }
     public TenantId TenantId { get; private set; } = null!;
 
     private Order(TestOrderId id, string description, TenantId tenantId) : base(id)

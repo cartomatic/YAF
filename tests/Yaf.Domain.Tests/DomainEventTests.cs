@@ -11,7 +11,7 @@ public class DomainEventInterfaceTests
         public DateTimeOffset OccurredAtUtc { get; init; }
         public Guid CorrelationId { get; init; }
         public TenantId TenantId { get; init; } = null!;
-        public Guid UserId { get; init; }
+        public ActorId ActorId { get; init; } = null!;
         public string? ActivityId { get; init; }
     }
 
@@ -44,13 +44,13 @@ public class DomainEventInterfaceTests
     }
 
     [Fact]
-    public void IDomainEvent_ImplementsIUserScoped()
+    public void IDomainEvent_ImplementsIActorScoped()
     {
-        var userId = Guid.NewGuid();
-        var evt = new TestEvent { UserId = userId };
+        var actorId = new ActorId(Guid.NewGuid());
+        var evt = new TestEvent { ActorId = actorId };
 
-        (evt is IUserScoped).Should().BeTrue();
-        ((IUserScoped)evt).UserId.Should().Be(userId);
+        (evt is IActorScoped).Should().BeTrue();
+        ((IActorScoped)evt).ActorId.Should().Be(actorId);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class DomainEventInterfaceTests
         var tenantId = new TenantId(Guid.NewGuid());
         var evt = new TestEvent { TenantId = tenantId };
 
-        (evt is ITenantScoped<TenantId>).Should().BeTrue();
+        (evt is ITenantScoped).Should().BeTrue();
         evt.TenantId.Should().Be(tenantId);
     }
 }
@@ -92,7 +92,7 @@ public class DomainEventGenericTests
         public DateTimeOffset OccurredAtUtc { get; init; }
         public Guid CorrelationId { get; init; }
         public TenantId TenantId { get; init; } = null!;
-        public Guid UserId { get; init; }
+        public ActorId ActorId { get; init; } = null!;
         public string? ActivityId { get; init; }
         public required OrderData Data { get; init; }
     }
@@ -106,6 +106,7 @@ public class DomainEventGenericTests
             EventId = Guid.NewGuid(),
             OccurredAtUtc = DateTimeOffset.UtcNow,
             TenantId = new TenantId(Guid.NewGuid()),
+            ActorId = new ActorId(Guid.NewGuid()),
             Data = data
         };
 
@@ -122,6 +123,7 @@ public class DomainEventGenericTests
             EventId = Guid.NewGuid(),
             OccurredAtUtc = DateTimeOffset.UtcNow,
             TenantId = new TenantId(Guid.NewGuid()),
+            ActorId = new ActorId(Guid.NewGuid()),
             Data = new OrderData("ORD-001", 50m)
         };
 
@@ -136,6 +138,7 @@ public class DomainEventGenericTests
             EventId = Guid.NewGuid(),
             OccurredAtUtc = DateTimeOffset.UtcNow,
             TenantId = new TenantId(Guid.NewGuid()),
+            ActorId = new ActorId(Guid.NewGuid()),
             Data = new OrderData("ORD-001", 50m)
         };
 

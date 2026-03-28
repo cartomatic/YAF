@@ -75,34 +75,6 @@ internal static class MementoHelper<TId, TSelf, TMemento>
             ? ReflectionHelper.BuildPropertyWriter<TSelf>(propertyName)
             : null;
 
-    /// <summary>
-    /// Builds a compiled property writer if <typeparamref name="TSelf"/> implements
-    /// the open generic domain interface and <typeparamref name="TMemento"/> implements the memento interface.
-    /// </summary>
-    internal static Action<TSelf, object?>? BuildWriter(Type openGenericDomain, Type mementoInterface, string propertyName) =>
-        ReflectionHelper.FindGenericInterface(typeof(TSelf), openGenericDomain) is not null
-            && mementoInterface.IsAssignableFrom(typeof(TMemento))
-            ? ReflectionHelper.BuildPropertyWriter<TSelf>(propertyName)
-            : null;
-
-    /// <summary>
-    /// Builds a compiled property reader if <typeparamref name="TSelf"/> implements
-    /// the open generic domain interface and <typeparamref name="TMemento"/> implements the memento interface.
-    /// </summary>
-    internal static Func<TSelf, object?>? BuildReader(Type openGenericDomain, Type mementoInterface, string propertyName) =>
-        ReflectionHelper.FindGenericInterface(typeof(TSelf), openGenericDomain) is not null
-            && mementoInterface.IsAssignableFrom(typeof(TMemento))
-            ? ReflectionHelper.BuildPropertyReader<TSelf>(propertyName)
-            : null;
-
-    /// <summary>
-    /// Builds a <see cref="TypedIdBridge{TSelf}"/> for a single typed ID property if
-    /// <typeparamref name="TSelf"/> implements the open generic domain interface and
-    /// <typeparamref name="TMemento"/> implements the memento interface.
-    /// </summary>
-    internal static TypedIdBridge<TSelf>? BuildBridge(Type openGenericDomain, Type mementoInterface, string propertyName) =>
-        TypedIdBridge<TSelf>.TryBuild<TMemento>(openGenericDomain, mementoInterface, propertyName);
-
     private static Func<Guid, TId>? BuildIdFactory()
     {
         var constructor = typeof(TId).GetConstructor([typeof(Guid)]);

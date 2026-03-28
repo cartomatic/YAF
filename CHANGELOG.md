@@ -8,12 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `ActorId` — framework-provided actor identifier (like `TenantId`), covers users, service accounts, and bots
 - `ICorrelated` — cross-cutting interface carrying a `Guid CorrelationId` for operation tracing
-- `IUserScoped` — cross-cutting interface carrying a `Guid UserId` identifying who triggered the operation
+- `IActorScoped` — cross-cutting interface carrying an `ActorId ActorId` identifying who triggered the operation
 - `IActivityScoped` — cross-cutting interface carrying a `string? ActivityId` from `System.Diagnostics.Activity`
-- `IDomainEvent` enriched from marker to full contract: `EventId` (Guid), `OccurredAtUtc` (DateTimeOffset), inherits `ICorrelated`, `ITenantScoped<TenantId>`, `IUserScoped`, `IActivityScoped`
+- `IDomainEvent` enriched from marker to full contract: `EventId` (Guid), `OccurredAtUtc` (DateTimeOffset), inherits `ICorrelated`, `ITenantScoped`, `IActorScoped`, `IActivityScoped`
 - `IDomainEvent<out T>` — covariant generic variant for domain events carrying a typed data payload
 - 10 new tests for domain event interfaces, cross-cutting context, and covariance
+
+### Changed
+
+- `ITenantScoped<TTenantId>` simplified to non-generic `ITenantScoped` using framework `TenantId` type
+- `IAccountable<TActorId>` simplified to non-generic `IAccountable` using framework `ActorId` type
+- `ISoftDeletable<TActorId>` simplified to non-generic `ISoftDeletable` using framework `ActorId` type
+- Entity/AggregateRoot auto-mapping simplified: direct interface reads for Snapshot, compiled writers with `ActorId` for Hydrate — no more `TypedIdBridge`
+
+### Removed
+
+- `TypedIdBridge<TSelf>` and `TypedIdFactoryCache` — no longer needed with non-generic domain interfaces
+- `IUserScoped` — replaced by `IActorScoped` with typed `ActorId`
+- Generic type parameters on `ITenantScoped`, `IAccountable`, `ISoftDeletable`
+- Open-generic builder overloads on `MementoHelper` (replaced by closed-generic `BuildWriter<TDomain, TMem>`)
 
 ### Changed
 

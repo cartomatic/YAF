@@ -12,7 +12,7 @@ public class AggregateRootEventTests
         public DateTimeOffset OccurredAtUtc { get; } = DateTimeOffset.UtcNow;
         public Guid CorrelationId { get; init; }
         public TenantId TenantId { get; init; } = null!;
-        public Guid UserId { get; init; }
+        public ActorId ActorId { get; init; } = null!;
         public string? ActivityId { get; init; }
     }
 
@@ -22,7 +22,7 @@ public class AggregateRootEventTests
         public DateTimeOffset OccurredAtUtc { get; } = DateTimeOffset.UtcNow;
         public Guid CorrelationId { get; init; }
         public TenantId TenantId { get; init; } = null!;
-        public Guid UserId { get; init; }
+        public ActorId ActorId { get; init; } = null!;
         public string? ActivityId { get; init; }
     }
 
@@ -127,7 +127,7 @@ public class AggregateRootMementoTests
         public DateTimeOffset OccurredAtUtc { get; } = DateTimeOffset.UtcNow;
         public Guid CorrelationId { get; init; }
         public TenantId TenantId { get; init; } = null!;
-        public Guid UserId { get; init; }
+        public ActorId ActorId { get; init; } = null!;
         public string? ActivityId { get; init; }
     }
 

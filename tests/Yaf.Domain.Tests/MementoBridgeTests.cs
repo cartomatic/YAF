@@ -59,25 +59,17 @@ internal class Order :
     public static Order Create(TestOrderId id, string description, TenantId tenantId) =>
         new(id, description, tenantId);
 
+    // Identity, timestamps, accountability, and soft-delete are auto-mapped by the base class.
+    // Only tenant and entity-specific properties need manual mapping.
     protected override void SnapshotCore(IOrderMemento memento)
     {
         memento.Description = Description;
-        memento.CreatedBy = CreatedBy?.Value;
-        memento.ModifiedBy = ModifiedBy?.Value;
-        memento.CreatedAtUtc = CreatedAtUtc;
-        memento.ModifiedAtUtc = ModifiedAtUtc;
-        memento.DeletedAtUtc = DeletedAtUtc;
-        memento.DeletedBy = DeletedBy?.Value;
         memento.TenantId = TenantId?.Value;
     }
 
     protected override void HydrateCore(IOrderMemento memento)
     {
         Description = memento.Description;
-        CreatedBy = memento.CreatedBy is { } cb ? new UserId(cb) : null;
-        ModifiedBy = memento.ModifiedBy is { } mb ? new UserId(mb) : null;
-        DeletedAtUtc = memento.DeletedAtUtc;
-        DeletedBy = memento.DeletedBy is { } db ? new UserId(db) : null;
         TenantId = memento.TenantId is { } t ? new TenantId(t) : null!;
     }
 

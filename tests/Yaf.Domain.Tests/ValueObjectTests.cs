@@ -72,7 +72,7 @@ public class ValueObjectMementoTests
             memento.B = B;
         }
 
-        protected override void RestoreCore(IColorMemento memento)
+        protected override void HydrateCore(IColorMemento memento)
         {
             R = memento.R;
             G = memento.G;

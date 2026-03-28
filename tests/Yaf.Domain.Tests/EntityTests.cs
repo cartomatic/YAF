@@ -129,7 +129,7 @@ public class EntityMementoTests
 
     private class ProductMemento : IProductMemento
     {
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
     }
@@ -151,12 +151,6 @@ public class EntityMementoTests
         {
             memento.Name = Name;
             memento.Price = Price;
-        }
-
-        protected override void RestoreCore(IProductMemento memento)
-        {
-            Name = memento.Name;
-            Price = memento.Price;
         }
 
         protected override void HydrateCore(IProductMemento memento)
@@ -282,13 +276,13 @@ public class EntityManualIdMementoTests
 
     private interface IItemMemento
     {
-        Guid Id { get; set; }
+        Guid? Id { get; set; }
         string Label { get; set; }
     }
 
     private class ItemMemento : IItemMemento
     {
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
         public string Label { get; set; } = string.Empty;
     }
 
@@ -309,15 +303,9 @@ public class EntityManualIdMementoTests
             memento.Label = Label;
         }
 
-        protected override void RestoreCore(IItemMemento memento)
-        {
-            Id = new ItemId(memento.Id);
-            Label = memento.Label;
-        }
-
         protected override void HydrateCore(IItemMemento memento)
         {
-            Id = new ItemId(memento.Id);
+            Id = new ItemId(memento.Id!.Value);
             Label = memento.Label;
         }
 

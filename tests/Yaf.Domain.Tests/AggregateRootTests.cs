@@ -114,7 +114,7 @@ public class AggregateRootMementoTests
 
     private class InvoiceMemento : IInvoiceMemento
     {
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
         public string Customer { get; set; } = string.Empty;
         public decimal Total { get; set; }
     }
@@ -141,12 +141,6 @@ public class AggregateRootMementoTests
         {
             memento.Customer = Customer;
             memento.Total = Total;
-        }
-
-        protected override void RestoreCore(IInvoiceMemento memento)
-        {
-            Customer = memento.Customer;
-            Total = memento.Total;
         }
 
         protected override void HydrateCore(IInvoiceMemento memento)

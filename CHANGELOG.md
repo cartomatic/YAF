@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-03-28
+
+### Added
+
+- `IAccountable<TActorId>` — domain-side accountability interface (CreatedBy?, ModifiedBy?); generic with typed actor ID
+- `ITimestamped` — domain-side timestamp interface (CreatedAtUtc?, ModifiedAtUtc?); both nullable, null = not yet persisted
+- `ISoftDeletable<TActorId>` — domain-side soft-deletion interface (DeletedAtUtc?, DeletedBy?); standalone, composition over inheritance
+- `ITenantScoped<TTenantId>` — domain-side tenant context interface; generic with typed tenant ID
+- `IHasAccountability` / `IHasAccountability<T>` — memento-side accountability with DIM pattern via `BoxingHelper.Unbox<T>`
+- `IHasTimestamps` — memento-side timestamps (get/set)
+- `IHasSoftDelete` / `IHasSoftDelete<T>` — memento-side soft-deletion with DIM pattern
+- `IHasTenantId` / `IHasTenantId<T>` — memento-side tenant identity with DIM pattern
+- `IHasVersionInfo` — memento-only optimistic concurrency token (Guid Version)
+- `IHasVersionHistory` — memento-only independent marker for version snapshots + graveyard
+- `TenantId` — framework-provided typed identifier (`TypedId<Guid>`)
+- `TypedIdBridge<TSelf>` — compiled per-property bridge for typed ID boxing (entity → primitive) and unboxing (primitive → entity via cached factory)
+- `BoxingHelper` — shared `Unbox<T>` used by all memento DIM implementations
+- `ReflectionHelper` — generic compiled property readers/writers (no domain knowledge)
+- Auto-mapping in base classes for timestamps (`ITimestamped` ↔ `IHasTimestamps`), accountability (`IAccountable<TActorId>` ↔ `IHasAccountability<T>`), and soft-delete (`ISoftDeletable<TActorId>` ↔ `IHasSoftDelete<T>`)
+- `InternalsVisibleTo` for `Yaf.Domain.Tests` in `Yaf.Domain.csproj`
+- Contributing conventions document (`docs/general/contributing-conventions.md`)
+- 32 new tests: memento bridge round-trips, BoxingHelper, ReflectionHelper, backward compatibility
+- Solution document: cross-cutting interfaces DIM boxing and typed ID bridging patterns
+
+### Changed
+
+- `Entity<TId, TSelf, TMemento>` — `Restore` now delegates to `Hydrate`; `RestoreCore` eliminated. Auto-maps identity, timestamps, accountability, and soft-delete. Consumers implement only `SnapshotCore` and `HydrateCore` for entity-specific properties and tenant context.
+- `AggregateRoot<TId, TSelf, TMemento>` — same changes as Entity
+- `ValueObject<TSelf, TMemento>` — `RestoreCore` renamed to `HydrateCore` for API consistency across all base classes
+- `IHasIdentity<T>` — added `struct` constraint (`where T : struct, IEquatable<T>`), `Id` property now `T?` (nullable); `BoxedId` now `object?`
+- `MementoHelper` — added conditional delegate builders (`BuildWriter`, `BuildReader`, `BuildBridge`) that check entity/memento interface compatibility
+- ADR: Cross-Cutting Infrastructure — added `ISoftDeletable`, renamed `IVersionable` to `IHasVersionHistory` (independent marker), updated deletion lifecycle to exclusive-paths model, clarified `IHasVersionInfo` as memento-only
+- CLAUDE.md — updated current state, added contributing conventions reference, added planning/review analysis to diary requirements
+
 ## 2026-03-26
 
 ### Added

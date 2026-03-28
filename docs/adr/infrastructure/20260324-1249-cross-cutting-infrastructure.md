@@ -9,7 +9,7 @@
 
 ## Summary
 
-Yaf.Infrastructure provides implementations for several cross-cutting concerns that are defined as contracts in the Domain and Application layers: accountability (who created/modified), timestamping (when), encryption at rest, versioning with time travel, and a deleted object graveyard. All are opt-in via interfaces/markers on domain objects, and all operate on memento DTOs — never on domain objects directly.
+Yaf.Infrastructure provides implementations for several cross-cutting concerns that are defined as contracts in the Domain and Application layers: accountability (who created/modified), timestamping (when), soft-deletion, encryption at rest, versioning with time travel, and a deleted object graveyard. All are opt-in via interfaces/markers on domain objects or mementos, and all operate on memento DTOs — never on domain objects directly.
 
 ## Drivers
 
@@ -41,7 +41,7 @@ Yaf.Infrastructure provides implementations for several cross-cutting concerns t
 
 | Option | Assessment |
 |--------|------------|
-| **`IHasVersionInfo` interface on mementos + automatic EF Core concurrency token** | **Selected.** Interface enforces a `Version` property (Guid). When applied to a memento, infrastructure auto-configures it as a concurrency token. Can also be applied to domain objects (e.g., aggregate roots) for domain-level version access, but the EF Core configuration only activates on mementos. |
+| **`IHasVersionInfo` interface on mementos + automatic EF Core concurrency token** | **Selected.** Memento-only interface enforcing a `Version` property (Guid). Infrastructure auto-configures it as a concurrency token. |
 | Concurrency token baked into `AggregateRoot<TId>` | Forces concurrency on all aggregates. Some aggregates (read-heavy, low contention) don't need it. |
 | SQL Server `rowversion` / PostgreSQL `xmin` | Database-specific. Not portable. Opaque binary values are harder to reason about than application-managed Guid tokens. |
 
@@ -49,39 +49,58 @@ Yaf.Infrastructure provides implementations for several cross-cutting concerns t
 
 | Option | Assessment |
 |--------|------------|
-| **`IVersionable : IHasVersionInfo` on mementos + automatic snapshots + graveyard** | **Selected.** `IVersionable` extends `IHasVersionInfo` — any versionable memento also gets optimistic concurrency. Infrastructure stores a memento snapshot (plus version number, who, when) on each UoW commit. On delete, the object is moved to a central graveyard table. Previous states are queryable by version or timestamp. Natural fit with the memento pattern. |
+| **`IHasVersionHistory` on mementos + automatic snapshots + graveyard** | **Selected.** `IHasVersionHistory` is an independent marker (does not extend `IHasVersionInfo`). Infrastructure stores a memento snapshot (plus version number, who, when) on each UoW commit. On delete, the object is moved to a central graveyard table. Previous states are queryable by version or timestamp. Natural fit with the memento pattern. |
 | Event sourcing | Full event replay capability but fundamentally different architecture. Overkill for snapshot-based time travel. Can be added as a separate pattern later. |
 | Manual versioning | Consumers implement their own snapshot storage. Repetitive and inconsistent. |
 | Separate opt-in for graveyard vs versioning | Additional interface complexity for little benefit — if you care about version history, you care about deletion history too. |
+
+### Soft-Deletion
+
+| Option | Assessment |
+|--------|------------|
+| **`ISoftDeletable<TActorId>` on domain object + `IHasSoftDelete<T>` on memento + EF Core global query filter** | **Selected.** Opt-in soft-delete via marker interface. `DeletedAtUtc` set on main table, global filter `WHERE DeletedAtUtc IS NULL` applied. Standalone — does not inherit ITimestamped or IAccountable. |
+| Per-table `IsDeleted` flag (forced on all entities) | Pollutes every query. Not opt-in. |
+| Soft-delete baked into `Entity<TId>` | Forces soft-delete on all entities. Most entities don't need it. |
+
+**Note:** This differs from the originally rejected "per-table soft delete" option because `ISoftDeletable` is **opt-in via a marker interface** with an automatically-applied global query filter. Only entities that explicitly implement `ISoftDeletable` get soft-delete behavior — there is no pollution of entities that don't need it.
 
 ### Deleted Object Handling
 
 | Option | Assessment |
 |--------|------------|
-| **Central graveyard table, activated by `IVersionable`** | **Selected.** Deleted objects with `IVersionable` mementos are serialized into a `DeletedObjects` table with metadata (type, ID, who, when). Main tables stay clean. Data is recoverable. Non-versionable aggregates are hard-deleted. |
-| Per-table soft delete (`IsDeleted` flag) | Pollutes every query with `WHERE IsDeleted = false`. Forgotten filters leak deleted data. Clutters main tables. |
+| **Exclusive-paths model: `ISoftDeletable` for soft-delete, `IHasVersionHistory` for graveyard** | **Selected.** Three-phase lifecycle: active → soft-deleted (if `ISoftDeletable`) → graveyarded (if `IHasVersionHistory`). Each is independent and opt-in. |
+| Central graveyard only (no soft-delete) | No way to "undo" a delete without recovery from graveyard. |
 | Hard delete for all | Data is gone. No recovery, no audit trail for deletions. |
 | Per-table archive table | One archive table per entity table. Schema duplication, migration overhead. |
-| Graveyard for all aggregates | Forces storage overhead on aggregates that don't need recoverability. |
+
+**Deletion lifecycle:**
+
+| Interfaces | Delete behavior |
+|------------|----------------|
+| Neither | Hard delete (row gone) |
+| `ISoftDeletable` | Soft delete (`DeletedAtUtc` set, row stays in main table) |
+| `IHasVersionHistory` | Graveyard (row archived to `DeletedObjects`) |
+| Both | Soft delete first; optional permanent delete moves to graveyard later |
 
 ## Recommendation
 
-All five concerns as opt-in, memento-based infrastructure features: optimistic concurrency via `IHasVersionInfo`, accountability + timestamping auto-populated on save, encryption transparent on memento properties, versioning + graveyard via `IVersionable` (which extends `IHasVersionInfo`).
+All six concerns as opt-in, interface-based infrastructure features: accountability + timestamping auto-populated on save, soft-deletion via `ISoftDeletable` with global query filter, optimistic concurrency via `IHasVersionInfo`, versioning + graveyard via `IHasVersionHistory` (independent from `IHasVersionInfo`), encryption transparent on memento properties.
 
 ## Consequences
 
 **Positive:**
 - All concerns are opt-in — consumers activate only what they need via interfaces/markers
-- Two-tier versioning: `IHasVersionInfo` for just concurrency, `IVersionable` for full audit trail (concurrency + snapshots + graveyard)
+- Independent versioning: `IHasVersionInfo` for concurrency, `IHasVersionHistory` for snapshots + graveyard (can be used independently or together)
+- Soft-deletion via `ISoftDeletable` with automatic global query filter — opt-in, not forced
 - Memento as the hook point means domain objects are completely unaware of these concerns
 - Auto-population eliminates manual audit field maintenance
-- Graveyard keeps main tables clean while preserving deleted data — only for `IVersionable` aggregates
+- Graveyard keeps main tables clean while preserving deleted data — only for `IHasVersionHistory` aggregates
 - Versioning gets time travel "for free" from the memento pattern — each save already produces a snapshot
 
 **Negative:**
 - Graveyard table can grow large in high-churn systems (mitigated: archival/cleanup policies are a consumer concern)
 - Versioning snapshots increase storage per save (mitigated: opt-in per aggregate, only for entities that need it)
-- Non-versionable aggregates are hard-deleted — no recoverability (by design: if you need recoverability, opt into `IVersionable`)
+- Non-versionable, non-soft-deletable aggregates are hard-deleted — no recoverability (by design: opt into `ISoftDeletable` or `IHasVersionHistory`)
 - Encryption adds latency to save/load (mitigated: only on marked properties, typically a small subset)
 - Consumers must implement `IEncryptionProvider` — YAF provides the hook, not the key management
 
@@ -91,23 +110,44 @@ All five concerns as opt-in, memento-based infrastructure features: optimistic c
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `IAccountable<TActorId>` | Domain | Interface declaring `CreatedBy`, `ModifiedBy`, `DeletedBy` with generic actor ID type |
+| `IAccountable<TActorId>` | Domain | Interface declaring `CreatedBy`, `ModifiedBy` with generic actor ID type. Non-generic `IAccountable` marker for runtime discovery. |
+| `IHasAccountability<T>` | Domain (memento-side) | Memento interface with `T CreatedBy`, `T ModifiedBy` + DIM for boxed access. |
 | Auto-population | Infrastructure | `YafDbContext.SaveChanges` reads from `IIdentityContextProvider` and sets fields on mementos |
 
 - `TActorId` is consumer-defined — `UserId`, `EmployeeId`, `ServiceAccountId`, etc.
-- Mementos store actor IDs as `Guid` (flattened from typed ID)
-- `DeletedBy` is populated when an object is moved to the graveyard
+- Mementos store actor IDs as `Guid` (flattened from typed ID) via `IHasAccountability<Guid>`
+- Both `CreatedBy` and `ModifiedBy` are nullable — `null` means the entity has not yet completed a persistence round-trip
+- Infrastructure must throw if user context is not provided when saving an accountable entity
+- Deletion tracking is a separate concern — see `ISoftDeletable` below
 
 ### Timestamping
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `ITimestamped` | Domain | Interface declaring `CreatedAtUtc`, `ModifiedAtUtc`, `DeletedAtUtc` |
+| `ITimestamped` | Domain | Interface declaring `CreatedAtUtc?`, `ModifiedAtUtc?` (both nullable `DateTimeOffset?`) |
+| `IHasTimestamps` | Domain (memento-side) | Memento interface with `DateTimeOffset? CreatedAtUtc`, `ModifiedAtUtc?` (get/set) |
 | Auto-population | Infrastructure | `YafDbContext.SaveChanges` sets timestamps from system clock (UTC) |
 
 - All times are `DateTimeOffset` in UTC
-- `DeletedAtUtc` is set on the graveyard record, not the main entity
-- `ModifiedAtUtc` is updated on every save
+- Both are nullable — `null` means the entity has not yet completed a persistence round-trip
+- `CreatedAtUtc` is set on first save, `ModifiedAtUtc` on every subsequent save
+- Deletion timestamps are a separate concern — see `ISoftDeletable` below
+
+### Soft-Deletion
+
+| Concept | Layer | Description |
+|---------|-------|-------------|
+| `ISoftDeletable` | Domain | Non-generic marker. Triggers soft-delete infrastructure behavior. |
+| `ISoftDeletable<TActorId>` | Domain | Generic variant with `DeletedAtUtc?` and `TActorId? DeletedBy`. |
+| `IHasSoftDelete` / `IHasSoftDelete<T>` | Domain (memento-side) | Memento interface with `DeletedAtUtc?`, `T DeletedBy` + DIM for boxed access. |
+| Global query filter | Infrastructure | `WHERE DeletedAtUtc IS NULL` auto-applied to all mementos implementing `IHasSoftDelete`. |
+| Auto-population | Infrastructure | `YafDbContext.SaveChanges` sets `DeletedAtUtc` and `DeletedBy` on soft-delete. |
+
+- Standalone interface — does not inherit from `ITimestamped` or `IAccountable` (composition over inheritance)
+- `DeletedAtUtc != null` means soft-deleted
+- Soft-deleted entities can be un-deleted by clearing `DeletedAtUtc` and `DeletedBy`
+- Bypass mechanism for admin queries (similar to tenant filter bypass)
+- Coexists with graveyard (`IHasVersionHistory`): soft-delete first, then optional permanent delete to graveyard
 
 ### Encryption
 
@@ -136,23 +176,23 @@ Load: Database → EF Core → decrypt [Encryptable] properties → Hydrate(meme
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `IHasVersionInfo` | Domain | Interface enforcing a `Version` property (Guid). Applicable to domain objects and/or mementos. |
+| `IHasVersionInfo` | Domain (memento-only) | Interface enforcing a `Version` property (Guid) on mementos. |
 | Auto-configuration | Infrastructure | When a memento implements `IHasVersionInfo`, `YafDbContext` auto-configures the `Version` property as an EF Core concurrency token. |
 
+- Memento-only — domain objects do not access the version property
 - `Version` is a `Guid` — application-managed, portable across databases
 - On save: infrastructure generates a new `Guid` for `Version`
 - EF Core includes `Version` in the `WHERE` clause of `UPDATE` statements
 - On conflict: `DbUpdateConcurrencyException` is thrown
-- Can be applied to domain objects (e.g., aggregate root) for domain-level version access — but the EF Core concurrency configuration only activates when present on the memento
 
-### Versioning (Time Travel) & Graveyard (`IVersionable`)
+### Versioning (Time Travel) & Graveyard (`IHasVersionHistory`)
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `IVersionable : IHasVersionInfo` | Domain | Extends `IHasVersionInfo`. Applied to mementos. Opt-in per aggregate. |
+| `IHasVersionHistory` | Domain (memento-only) | Independent marker. Applied to mementos. Opt-in per aggregate. Does not extend `IHasVersionInfo` — concurrency and version history are separate concerns. |
 | Version snapshot storage | Infrastructure | On Unit of Work commit: store final memento state + version number + who + when |
 | Time-travel queries | Infrastructure | Retrieve any previous state by version number or timestamp |
-| Graveyard on delete | Infrastructure | When a `IVersionable` aggregate is deleted, its memento is serialized to the graveyard table |
+| Graveyard on delete | Infrastructure | When an `IHasVersionHistory` aggregate is deleted, its memento is serialized to the graveyard table |
 
 **Snapshot record:**
 
@@ -186,8 +226,11 @@ Load: Database → EF Core → decrypt [Encryptable] properties → Hydrate(meme
 | `DeletedAtUtc` | When deleted |
 | `TenantId` | Tenant Guid (if tenant-scoped) |
 
-- **Only `IVersionable` aggregates** get graveyard treatment — non-versionable aggregates are hard-deleted
-- Main entity is removed from its table — no soft-delete flags, no query filter pollution
+- **Only `IHasVersionHistory` aggregates** get graveyard treatment
+- Without `ISoftDeletable`: entity is hard-deleted from main table and archived to graveyard
+- With `ISoftDeletable`: entity can be soft-deleted first, then permanently deleted to graveyard later
+- Without either: entity is hard-deleted with no recoverability
+- Graveyard has its own independent data model — does not reuse `ISoftDeletable` fields
 - Graveyard is append-only from the application's perspective
 - Recovery is an explicit operation (restore from graveyard → re-persist)
 - Graveyard records are **tenant-scoped** if the original entity was tenant-scoped. Tenant query filters apply to graveyard queries — a tenant can only access their own deleted objects.
@@ -196,11 +239,12 @@ Load: Database → EF Core → decrypt [Encryptable] properties → Hydrate(meme
 
 | Concern | Activated By | Applies To |
 |---------|-------------|------------|
-| Optimistic concurrency | Implement `IHasVersionInfo` on memento | `Version` (Guid) auto-configured as EF Core concurrency token |
-| Accountability | Implement `IAccountable<TActorId>` on domain object | Memento gets `CreatedBy`, `ModifiedBy` auto-populated |
-| Timestamping | Implement `ITimestamped` on domain object | Memento gets `CreatedAtUtc`, `ModifiedAtUtc` auto-populated |
-| Encryption | Mark memento properties with `[Encryptable]` | Marked properties encrypted/decrypted during save/load |
-| Versioning + Graveyard | Implement `IVersionable` on memento | Memento snapshot stored on each save; deleted objects moved to graveyard |
+| Accountability | `IAccountable<TActorId>` on domain object + `IHasAccountability<T>` on memento | `CreatedBy`, `ModifiedBy` auto-populated from `IIdentityContextProvider` |
+| Timestamping | `ITimestamped` on domain object + `IHasTimestamps` on memento | `CreatedAtUtc`, `ModifiedAtUtc` auto-populated from system clock |
+| Soft-deletion | `ISoftDeletable<TActorId>` on domain object + `IHasSoftDelete<T>` on memento | `DeletedAtUtc`, `DeletedBy` set; global query filter applied |
+| Optimistic concurrency | `IHasVersionInfo` on memento | `Version` (Guid) auto-configured as EF Core concurrency token |
+| Versioning + Graveyard | `IHasVersionHistory` on memento | Memento snapshot stored on each save; deleted objects moved to graveyard |
+| Encryption | `[Encryptable]` on memento properties | Marked properties encrypted/decrypted during save/load |
 
 ## More Information
 

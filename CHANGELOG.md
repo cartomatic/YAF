@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## 2026-03-28
 
+### Changed
+
+- `TypedId<T>` simplified to non-generic `TypedId` — all typed IDs are now Guid-backed; external systems with non-Guid identifiers remap at the anti-corruption layer boundary
+- `ITypedId` simplified to single interface with `Guid Value` — removed `ITypedId<out T>`, `IdentityType`, and `BoxedValue`
+- Memento interfaces collapsed from two-tier (non-generic base + generic DIM variant) to single-tier with direct `Guid?` properties: `IHasIdentity`, `IHasAccountability`, `IHasTenantId`, `IHasSoftDelete`
+- `TypedIdBridge` simplified — factory always takes `Guid`, reads `.Value` directly
+- `MementoHelper` simplified — no more runtime `IdentityType` compatibility checks
+- `TenantId` updated: `TypedId<Guid>` → `TypedId`
+- Consumer ID declaration: `TypedId<Guid>` → `TypedId` (e.g., `record OrderId(Guid Value) : TypedId(Value)`)
+
+### Removed
+
+- `ITypedId<out T>` generic interface — replaced by simplified `ITypedId`
+- `BoxingHelper` — no longer needed when backing type is always `Guid`
+- Generic variants of memento interfaces (`IHasIdentity<T>`, `IHasAccountability<T>`, `IHasTenantId<T>`, `IHasSoftDelete<T>`) — replaced by single-tier interfaces
+- DIM (Default Interface Method) implementations on memento interfaces — no boxing layer needed
+- Non-Guid TypedId tests (int, long, string backing types)
+
 ### Added
 
 - `IAccountable<TActorId>` — domain-side accountability interface (CreatedBy?, ModifiedBy?); generic with typed actor ID

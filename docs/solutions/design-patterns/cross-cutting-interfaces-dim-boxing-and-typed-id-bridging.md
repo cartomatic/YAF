@@ -29,6 +29,13 @@ affected_files:
   - src/Yaf.Domain/Interfaces/IHasIdentity.cs
 ---
 
+> **SUPERSEDED (2026-03-28):** The DIM boxing pattern described below was eliminated by the
+> TypedId Guid-only simplification (`refactor/typedid-guid-only`). All typed IDs now use `Guid`
+> as the backing type, so memento interfaces are single-tier with direct `Guid?` properties.
+> `BoxingHelper` was deleted. `TypedIdBridge` and `MementoHelper` were simplified.
+> The two-tier (non-generic base + generic DIM variant) pattern no longer exists.
+> This document is preserved for historical context.
+
 ## Problem
 
 The YAF framework needed opt-in cross-cutting concern interfaces (accountability, timestamps, soft-delete, tenant, versioning) that work across a memento-based persistence boundary. The challenge: base classes (`Entity`, `AggregateRoot`) must auto-map properties between domain entities (typed IDs like `UserId`) and mementos (primitives like `Guid`) without knowing the concrete generic type arguments of the opt-in interfaces.

@@ -89,25 +89,25 @@ After simplification:
 
 ### Functional Requirements
 
-- [ ] `TypedId` is a non-generic abstract record wrapping `Guid`
-- [ ] `ITypedId` has `Guid Value { get; }` — no `IdentityType`, no `BoxedValue`
-- [ ] `ITypedId<out T>` is removed
-- [ ] Each memento interface is a single tier with `Guid?` properties — no boxing accessors, no `Type` properties
-- [ ] `BoxingHelper` is removed
-- [ ] `TypedIdBridge` is simplified (reads `.Value`, factory always takes `Guid`)
-- [ ] `TypedIdFactoryCache` simplified (always looks for `ctor(Guid)`)
-- [ ] `MementoHelper` simplified (no `IdentityType` checks)
-- [ ] Domain-side interfaces keep generics: `IAccountable<TActorId>`, `ITenantScoped<TTenantId>`, `ISoftDeletable<TActorId>` with `where T : ITypedId`
-- [ ] `TenantId` updated: `TenantId(Guid Value) : TypedId(Value)`
-- [ ] `Entity<TId, TSelf, TMemento>` auto-mapping works correctly with simplified interfaces
-- [ ] All existing 90 tests pass (updated for new signatures)
-- [ ] Consumer usage pattern: `public record OrderId(Guid Value) : TypedId(Value);`
+- [x] `TypedId` is a non-generic abstract record wrapping `Guid`
+- [x] `ITypedId` has `Guid Value { get; }` — no `IdentityType`, no `BoxedValue`
+- [x] `ITypedId<out T>` is removed
+- [x] Each memento interface is a single tier with `Guid?` properties — no boxing accessors, no `Type` properties
+- [x] `BoxingHelper` is removed
+- [x] `TypedIdBridge` is simplified (reads `.Value`, factory always takes `Guid`)
+- [x] `TypedIdFactoryCache` simplified (always looks for `ctor(Guid)`)
+- [x] `MementoHelper` simplified (no `IdentityType` checks)
+- [x] Domain-side interfaces keep generics: `IAccountable<TActorId>`, `ITenantScoped<TTenantId>`, `ISoftDeletable<TActorId>` with `where T : ITypedId`
+- [x] `TenantId` updated: `TenantId(Guid Value) : TypedId(Value)`
+- [x] `Entity<TId, TSelf, TMemento>` auto-mapping works correctly with simplified interfaces
+- [x] All 81 tests pass (updated for new signatures; 9 removed with BoxingHelper and non-Guid TypedId tests)
+- [x] Consumer usage pattern: `public record OrderId(Guid Value) : TypedId(Value);`
 
 ### Non-Functional Requirements
 
-- [ ] No new NuGet dependencies introduced
-- [ ] Public API surface is smaller (fewer types, fewer members)
-- [ ] Reflection/compiled expression usage reduced
+- [x] No new NuGet dependencies introduced
+- [x] Public API surface is smaller (fewer types, fewer members)
+- [x] Reflection/compiled expression usage reduced
 
 ## Success Metrics
 

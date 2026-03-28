@@ -6,8 +6,7 @@ namespace Yaf.Domain.Helpers;
 
 /// <summary>
 /// Shared memento building blocks used by both <see cref="Entity{TId,TSelf,TMemento}"/>
-/// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> for identity bridging and
-/// conditional delegate construction.
+/// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> for identity bridging.
 /// </summary>
 internal static class MementoHelper<TId, TSelf, TMemento>
     where TId : ITypedId
@@ -15,8 +14,6 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     where TMemento : class
 {
     private static readonly Func<Guid, TId>? _idFactory = BuildIdFactory();
-
-    // --- Identity ---
 
     /// <summary>
     /// Writes the entity's identity to the memento if the memento implements <see cref="IHasIdentity"/>.
@@ -60,20 +57,6 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     /// </summary>
     internal static TSelf CreateUninitializedInstance() =>
         (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
-
-    // --- Conditional delegate builders ---
-    // These check whether TSelf/TMemento implement the required interfaces before
-    // compiling delegates. Returns null when the concern does not apply, avoiding
-    // unnecessary reflection.
-
-    /// <summary>
-    /// Builds a compiled property writer if <typeparamref name="TSelf"/> implements
-    /// <typeparamref name="TDomain"/> and <typeparamref name="TMemento"/> implements <typeparamref name="TMem"/>.
-    /// </summary>
-    internal static Action<TSelf, object?>? BuildWriter<TDomain, TMem>(string propertyName) =>
-        typeof(TDomain).IsAssignableFrom(typeof(TSelf)) && typeof(TMem).IsAssignableFrom(typeof(TMemento))
-            ? ReflectionHelper.BuildPropertyWriter<TSelf>(propertyName)
-            : null;
 
     private static Func<Guid, TId>? BuildIdFactory()
     {

@@ -18,13 +18,6 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     where TSelf : Entity<TId, TSelf, TMemento>
     where TMemento : class
 {
-    private static readonly Action<TSelf, object?>? _createdAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.CreatedAtUtc));
-    private static readonly Action<TSelf, object?>? _modifiedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ITimestamped, IHasTimestamps>(nameof(ITimestamped.ModifiedAtUtc));
-    private static readonly Action<TSelf, object?>? _createdByWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<IAccountable, IHasAccountability>(nameof(IAccountable.CreatedBy));
-    private static readonly Action<TSelf, object?>? _modifiedByWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<IAccountable, IHasAccountability>(nameof(IAccountable.ModifiedBy));
-    private static readonly Action<TSelf, object?>? _deletedAtWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ISoftDeletable, IHasSoftDelete>(nameof(ISoftDeletable.DeletedAtUtc));
-    private static readonly Action<TSelf, object?>? _deletedByWriter = MementoHelper<TId, TSelf, TMemento>.BuildWriter<ISoftDeletable, IHasSoftDelete>(nameof(ISoftDeletable.DeletedBy));
-
     /// <inheritdoc />
     protected Entity(TId id) : base(id) { }
 
@@ -98,10 +91,10 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
 
     private void HydrateTimestamps(TMemento memento)
     {
-        if (this is ITimestamped && memento is IHasTimestamps hts)
+        if (this is ITimestamped ts && memento is IHasTimestamps hts)
         {
-            _createdAtWriter?.Invoke((TSelf)this, hts.CreatedAtUtc);
-            _modifiedAtWriter?.Invoke((TSelf)this, hts.ModifiedAtUtc);
+            ts.CreatedAtUtc = hts.CreatedAtUtc;
+            ts.ModifiedAtUtc = hts.ModifiedAtUtc;
         }
     }
 
@@ -116,10 +109,10 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
 
     private void HydrateAccountability(TMemento memento)
     {
-        if (_createdByWriter is not null && memento is IHasAccountability ha)
+        if (this is IAccountable acc && memento is IHasAccountability ha)
         {
-            _createdByWriter.Invoke((TSelf)this, ha.CreatedBy.HasValue ? new ActorId(ha.CreatedBy.Value) : null);
-            _modifiedByWriter!.Invoke((TSelf)this, ha.ModifiedBy.HasValue ? new ActorId(ha.ModifiedBy.Value) : null);
+            acc.CreatedBy = ha.CreatedBy.HasValue ? new ActorId(ha.CreatedBy.Value) : null;
+            acc.ModifiedBy = ha.ModifiedBy.HasValue ? new ActorId(ha.ModifiedBy.Value) : null;
         }
     }
 
@@ -134,11 +127,10 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
 
     private void HydrateSoftDelete(TMemento memento)
     {
-        if (_deletedByWriter is not null && memento is IHasSoftDelete hsd)
+        if (this is ISoftDeletable sd && memento is IHasSoftDelete hsd)
         {
-            _deletedAtWriter?.Invoke((TSelf)this, hsd.DeletedAtUtc);
-            _deletedByWriter.Invoke((TSelf)this, hsd.DeletedBy.HasValue ? new ActorId(hsd.DeletedBy.Value) : null);
+            sd.DeletedAtUtc = hsd.DeletedAtUtc;
+            sd.DeletedBy = hsd.DeletedBy.HasValue ? new ActorId(hsd.DeletedBy.Value) : null;
         }
     }
-
 }

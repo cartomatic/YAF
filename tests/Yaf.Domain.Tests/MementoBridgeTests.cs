@@ -40,12 +40,12 @@ internal class Order :
     ITenantScoped
 {
     public string Description { get; private set; } = string.Empty;
-    public ActorId? CreatedBy { get; private set; }
-    public ActorId? ModifiedBy { get; private set; }
-    public DateTimeOffset? CreatedAtUtc { get; private set; }
-    public DateTimeOffset? ModifiedAtUtc { get; private set; }
-    public DateTimeOffset? DeletedAtUtc { get; private set; }
-    public ActorId? DeletedBy { get; private set; }
+    public ActorId? CreatedBy { get; set; }
+    public ActorId? ModifiedBy { get; set; }
+    public DateTimeOffset? CreatedAtUtc { get; set; }
+    public DateTimeOffset? ModifiedAtUtc { get; set; }
+    public DateTimeOffset? DeletedAtUtc { get; set; }
+    public ActorId? DeletedBy { get; set; }
     public TenantId TenantId { get; private set; } = null!;
 
     private Order(TestOrderId id, string description, TenantId tenantId) : base(id)

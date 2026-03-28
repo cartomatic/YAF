@@ -19,10 +19,10 @@ public interface ITimestamped
     /// <summary>
     /// When this entity was created (UTC). <see langword="null"/> before first persistence.
     /// </summary>
-    DateTimeOffset? CreatedAtUtc { get; }
+    DateTimeOffset? CreatedAtUtc { get; set; }
 
     /// <summary>
     /// When this entity was last modified (UTC). <see langword="null"/> until first modification.
     /// </summary>
-    DateTimeOffset? ModifiedAtUtc { get; }
+    DateTimeOffset? ModifiedAtUtc { get; set; }
 }

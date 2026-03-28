@@ -34,10 +34,10 @@ public interface ISoftDeletable
     /// <summary>
     /// When this entity was soft-deleted (UTC). <see langword="null"/> if not deleted.
     /// </summary>
-    DateTimeOffset? DeletedAtUtc { get; }
+    DateTimeOffset? DeletedAtUtc { get; set; }
 
     /// <summary>
     /// The actor who soft-deleted this entity. <see langword="null"/> if not deleted.
     /// </summary>
-    ActorId? DeletedBy { get; }
+    ActorId? DeletedBy { get; set; }
 }

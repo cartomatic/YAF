@@ -22,10 +22,10 @@ public interface IAccountable
     /// <summary>
     /// The actor who created this entity. <see langword="null"/> before first persistence.
     /// </summary>
-    ActorId? CreatedBy { get; }
+    ActorId? CreatedBy { get; set; }
 
     /// <summary>
     /// The actor who last modified this entity. <see langword="null"/> until first modification.
     /// </summary>
-    ActorId? ModifiedBy { get; }
+    ActorId? ModifiedBy { get; set; }
 }

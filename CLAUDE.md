@@ -42,6 +42,7 @@ At the end of each Claude Code session (or when asked), write a diary entry in `
 - **What was achieved** — concrete outputs and files produced
 - **What went well** — effective approaches worth repeating
 - **What went wrong** — mistakes, drift from user intent, misunderstandings, with root cause analysis
+- **Planning & Review Analysis** — if the session included planning or spec review phases, document: what aspects of the plan were sound from the start, what required further discussion or clarification, and what effective changes resulted from the review process. Do the same for code review sessions: which findings were actionable, which were noise, and what concrete improvements came from the review feedback.
 - **Other notes** — workarounds, discoveries, things to remember
 
 The diary serves as an honest record of the AI-assisted development experience — both successes and failures. Be candid about mistakes and what caused them.

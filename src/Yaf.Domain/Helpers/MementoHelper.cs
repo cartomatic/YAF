@@ -5,8 +5,9 @@ using Yaf.Domain.Interfaces;
 namespace Yaf.Domain.Helpers;
 
 /// <summary>
-/// Shared memento orchestration logic used by both <see cref="Entity{TId,TSelf,TMemento}"/>
-/// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> to avoid duplication.
+/// Shared memento building blocks used by both <see cref="Entity{TId,TSelf,TMemento}"/>
+/// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> for identity bridging and
+/// conditional delegate construction.
 /// </summary>
 internal static class MementoHelper<TId, TSelf, TMemento>
     where TId : ITypedId

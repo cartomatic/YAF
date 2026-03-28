@@ -14,7 +14,7 @@ namespace Yaf.Domain;
 /// Derived types must use positional record syntax (e.g., <c>record OrderId(Guid Value)</c>)
 /// which generates a public constructor accepting a single <see cref="Guid"/> parameter.
 /// This constructor is required for memento identity reconstruction via
-/// compiled expression-tree factories in <c>MementoHelper</c> and <c>TypedIdFactoryCache</c>.
+/// compiled expression-tree factories in <c>MementoHelper</c>.
 /// </para>
 /// </remarks>
 public abstract record TypedId : ITypedId

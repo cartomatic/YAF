@@ -85,11 +85,11 @@ Every `IDomainEvent` carries these fields as interface members:
 | `EventId` | `IDomainEvent` | `Guid` | Generated at event creation |
 | `OccurredAtUtc` | `IDomainEvent` | `DateTimeOffset` | System clock |
 | `CorrelationId` | `ICorrelated` | `Guid` | `ICorrelationIdProvider` |
-| `TenantId` | `ITenantScoped<TenantId>` | `TenantId` | `ITenantContextProvider` |
-| `UserId` | `IUserScoped` | `Guid` | `IIdentityContextProvider` |
+| `TenantId` | `ITenantScoped` | `TenantId` | `ITenantContextProvider` |
+| `ActorId` | `IActorScoped` | `ActorId` | `IIdentityContextProvider` |
 | `ActivityId` | `IActivityScoped` | `string?` | `IActivityIdProvider` |
 
-`ICorrelated`, `IUserScoped`, and `IActivityScoped` are standalone interfaces — commands, queries, and integration events can implement them too. `IDomainEvent<out T>` extends `IDomainEvent` with a covariant typed data payload.
+`ICorrelated`, `IActorScoped`, and `IActivityScoped` are standalone interfaces — commands, queries, and integration events can implement them too. `IDomainEvent<out T>` extends `IDomainEvent` with a covariant typed data payload.
 
 Infrastructure populates context fields from context providers when the event is created or dispatched. The context providers remain Application-layer contracts, Infrastructure-implemented.
 
@@ -112,7 +112,7 @@ Infrastructure populates context fields from context providers when the event is
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `IDomainEvent` | Domain | Full contract: EventId, OccurredAtUtc, inherits ICorrelated, ITenantScoped, IUserScoped, IActivityScoped |
+| `IDomainEvent` | Domain | Full contract: EventId, OccurredAtUtc, inherits ICorrelated, ITenantScoped, IActorScoped, IActivityScoped |
 | `IDomainEvent<out T>` | Domain | Extends IDomainEvent with a covariant typed data payload |
 | `IDomainEventHandler<TEvent>` | Application | Handles a specific domain event type |
 | Event dispatch | Infrastructure | Dispatches events after save, attaches context |

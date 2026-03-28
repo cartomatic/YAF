@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## 2026-03-28
 
+### Added
+
+- `ICorrelated` — cross-cutting interface carrying a `Guid CorrelationId` for operation tracing
+- `IUserScoped` — cross-cutting interface carrying a `Guid UserId` identifying who triggered the operation
+- `IActivityScoped` — cross-cutting interface carrying a `string? ActivityId` from `System.Diagnostics.Activity`
+- `IDomainEvent` enriched from marker to full contract: `EventId` (Guid), `OccurredAtUtc` (DateTimeOffset), inherits `ICorrelated`, `ITenantScoped<TenantId>`, `IUserScoped`, `IActivityScoped`
+- `IDomainEvent<out T>` — covariant generic variant for domain events carrying a typed data payload
+- 10 new tests for domain event interfaces, cross-cutting context, and covariance
+
 ### Changed
 
 - `TypedId<T>` simplified to non-generic `TypedId` — all typed IDs are now Guid-backed; external systems with non-Guid identifiers remap at the anti-corruption layer boundary

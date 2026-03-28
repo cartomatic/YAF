@@ -29,9 +29,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     {
         ArgumentNullException.ThrowIfNull(memento);
         MementoHelper<TId, TSelf, TMemento>.WriteIdentity(memento, Id);
-        SnapshotTimestamps(memento);
-        SnapshotAccountability(memento);
-        SnapshotSoftDelete(memento);
+        MementoHelper<TId, TSelf, TMemento>.SnapshotCrossCutting((TSelf)this, memento);
         SnapshotCore(memento);
     }
 
@@ -55,9 +53,7 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
             Id = id!;
         }
 
-        HydrateTimestamps(memento);
-        HydrateAccountability(memento);
-        HydrateSoftDelete(memento);
+        MementoHelper<TId, TSelf, TMemento>.HydrateCrossCutting((TSelf)this, memento);
         HydrateCore(memento);
         this.ThrowIfInvalid();
     }
@@ -77,60 +73,4 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
 
     /// <inheritdoc />
     public abstract IReadOnlyCollection<IError> GetValidationErrors();
-
-    // --- Auto-mapped concerns (identical to Entity) ---
-
-    private void SnapshotTimestamps(TMemento memento)
-    {
-        if (this is ITimestamped ts && memento is IHasTimestamps hts)
-        {
-            hts.CreatedAtUtc = ts.CreatedAtUtc;
-            hts.ModifiedAtUtc = ts.ModifiedAtUtc;
-        }
-    }
-
-    private void HydrateTimestamps(TMemento memento)
-    {
-        if (this is ITimestamped ts && memento is IHasTimestamps hts)
-        {
-            ts.CreatedAtUtc = hts.CreatedAtUtc;
-            ts.ModifiedAtUtc = hts.ModifiedAtUtc;
-        }
-    }
-
-    private void SnapshotAccountability(TMemento memento)
-    {
-        if (this is IAccountable acc && memento is IHasAccountability ha)
-        {
-            ha.CreatedBy = acc.CreatedBy?.Value;
-            ha.ModifiedBy = acc.ModifiedBy?.Value;
-        }
-    }
-
-    private void HydrateAccountability(TMemento memento)
-    {
-        if (this is IAccountable acc && memento is IHasAccountability ha)
-        {
-            acc.CreatedBy = ha.CreatedBy.HasValue ? new ActorId(ha.CreatedBy.Value) : null;
-            acc.ModifiedBy = ha.ModifiedBy.HasValue ? new ActorId(ha.ModifiedBy.Value) : null;
-        }
-    }
-
-    private void SnapshotSoftDelete(TMemento memento)
-    {
-        if (this is ISoftDeletable sd && memento is IHasSoftDelete hsd)
-        {
-            hsd.DeletedAtUtc = sd.DeletedAtUtc;
-            hsd.DeletedBy = sd.DeletedBy?.Value;
-        }
-    }
-
-    private void HydrateSoftDelete(TMemento memento)
-    {
-        if (this is ISoftDeletable sd && memento is IHasSoftDelete hsd)
-        {
-            sd.DeletedAtUtc = hsd.DeletedAtUtc;
-            sd.DeletedBy = hsd.DeletedBy.HasValue ? new ActorId(hsd.DeletedBy.Value) : null;
-        }
-    }
 }

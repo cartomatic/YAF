@@ -5,7 +5,8 @@ namespace Yaf.Domain.Helpers;
 
 /// <summary>
 /// Shared memento building blocks used by both <see cref="Entity{TId,TSelf,TMemento}"/>
-/// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> for identity bridging.
+/// and <see cref="AggregateRoot{TId,TSelf,TMemento}"/> for identity bridging and
+/// cross-cutting concern mapping.
 /// </summary>
 internal static class MementoHelper<TId, TSelf, TMemento>
     where TId : ITypedId
@@ -46,4 +47,54 @@ internal static class MementoHelper<TId, TSelf, TMemento>
     /// </summary>
     internal static TSelf CreateUninitializedInstance() =>
         (TSelf)RuntimeHelpers.GetUninitializedObject(typeof(TSelf));
+
+    /// <summary>
+    /// Snapshots all cross-cutting concerns (timestamps, accountability, soft-delete)
+    /// from the entity to the memento via direct interface reads.
+    /// </summary>
+    internal static void SnapshotCrossCutting(TSelf entity, TMemento memento)
+    {
+        if (entity is ITimestamped ts && memento is IHasTimestamps hts)
+        {
+            hts.CreatedAtUtc = ts.CreatedAtUtc;
+            hts.ModifiedAtUtc = ts.ModifiedAtUtc;
+        }
+
+        if (entity is IAccountable acc && memento is IHasAccountability ha)
+        {
+            ha.CreatedBy = acc.CreatedBy?.Value;
+            ha.ModifiedBy = acc.ModifiedBy?.Value;
+        }
+
+        if (entity is ISoftDeletable sd && memento is IHasSoftDelete hsd)
+        {
+            hsd.DeletedAtUtc = sd.DeletedAtUtc;
+            hsd.DeletedBy = sd.DeletedBy?.Value;
+        }
+    }
+
+    /// <summary>
+    /// Hydrates all cross-cutting concerns (timestamps, accountability, soft-delete)
+    /// from the memento to the entity via direct interface writes.
+    /// </summary>
+    internal static void HydrateCrossCutting(TSelf entity, TMemento memento)
+    {
+        if (entity is ITimestamped ts && memento is IHasTimestamps hts)
+        {
+            ts.CreatedAtUtc = hts.CreatedAtUtc;
+            ts.ModifiedAtUtc = hts.ModifiedAtUtc;
+        }
+
+        if (entity is IAccountable acc && memento is IHasAccountability ha)
+        {
+            acc.CreatedBy = ha.CreatedBy.HasValue ? new ActorId(ha.CreatedBy.Value) : null;
+            acc.ModifiedBy = ha.ModifiedBy.HasValue ? new ActorId(ha.ModifiedBy.Value) : null;
+        }
+
+        if (entity is ISoftDeletable sd && memento is IHasSoftDelete hsd)
+        {
+            sd.DeletedAtUtc = hsd.DeletedAtUtc;
+            sd.DeletedBy = hsd.DeletedBy.HasValue ? new ActorId(hsd.DeletedBy.Value) : null;
+        }
+    }
 }

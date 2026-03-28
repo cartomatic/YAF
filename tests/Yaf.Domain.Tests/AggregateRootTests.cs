@@ -6,8 +6,25 @@ namespace Yaf.Domain.Tests;
 public class AggregateRootEventTests
 {
     private record OrderId(Guid Value) : TypedId(Value);
-    private record OrderPlaced(OrderId OrderId) : IDomainEvent;
-    private record OrderShipped(OrderId OrderId) : IDomainEvent;
+    private record OrderPlaced(OrderId OrderId) : IDomainEvent
+    {
+        public Guid EventId { get; } = Guid.NewGuid();
+        public DateTimeOffset OccurredAtUtc { get; } = DateTimeOffset.UtcNow;
+        public Guid CorrelationId { get; init; }
+        public TenantId TenantId { get; init; } = null!;
+        public Guid UserId { get; init; }
+        public string? ActivityId { get; init; }
+    }
+
+    private record OrderShipped(OrderId OrderId) : IDomainEvent
+    {
+        public Guid EventId { get; } = Guid.NewGuid();
+        public DateTimeOffset OccurredAtUtc { get; } = DateTimeOffset.UtcNow;
+        public Guid CorrelationId { get; init; }
+        public TenantId TenantId { get; init; } = null!;
+        public Guid UserId { get; init; }
+        public string? ActivityId { get; init; }
+    }
 
     private class TestOrder : AggregateRoot<OrderId>
     {
@@ -104,7 +121,15 @@ public class AggregateRootEventTests
 public class AggregateRootMementoTests
 {
     private record InvoiceId(Guid Value) : TypedId(Value);
-    private record InvoiceCreated(InvoiceId InvoiceId) : IDomainEvent;
+    private record InvoiceCreated(InvoiceId InvoiceId) : IDomainEvent
+    {
+        public Guid EventId { get; } = Guid.NewGuid();
+        public DateTimeOffset OccurredAtUtc { get; } = DateTimeOffset.UtcNow;
+        public Guid CorrelationId { get; init; }
+        public TenantId TenantId { get; init; } = null!;
+        public Guid UserId { get; init; }
+        public string? ActivityId { get; init; }
+    }
 
     private interface IInvoiceMemento : IHasIdentity
     {

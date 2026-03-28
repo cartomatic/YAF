@@ -25,9 +25,6 @@ public sealed class ValidationException : Exception
     public ValidationException(Type objectType, IReadOnlyCollection<IError> errors)
         : base(FormatMessage(objectType, errors))
     {
-        ArgumentNullException.ThrowIfNull(objectType);
-        ArgumentNullException.ThrowIfNull(errors);
-
         ObjectType = objectType;
         Errors = errors;
     }

@@ -28,7 +28,7 @@ public abstract class AggregateRoot<TId> : Entity<TId>
     /// Returns an empty collection when no events have been raised.
     /// </summary>
     public IReadOnlyCollection<IDomainEvent> DomainEvents =>
-        (IReadOnlyCollection<IDomainEvent>?)_domainEvents ?? Array.Empty<IDomainEvent>();
+        (IReadOnlyCollection<IDomainEvent>?)_domainEvents ?? [];
 
     /// <summary>
     /// Initializes a new instance of the aggregate root with the specified identifier.

@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-03-30
+
+### Added
+
+- `IErrorSource` — marker interface for types declaring `IError` properties/fields, enabling automated error catalog discovery
+- `Error` — sealed record implementing `IError` with guard clauses on `Code` and `Message`
+- `IEncryptable` — marker interface for memento types containing properties requiring encryption at rest
+- `EncryptAttribute` — property-level attribute marking memento properties for transparent encryption (supports `string`, `string[]`, `List<string>`, `byte[]`)
+- `IMementoBase` — composite interface combining `IHasIdentity`, `IHasAccountability`, `IHasTimestamps`, `IHasVersionInfo`
+- `ITenantMementoBase` — extends `IMementoBase` with `IHasTenantId` for tenant-scoped entities
+- `MementoBase` — abstract base class implementing `IMementoBase`, eliminates boilerplate for non-tenant mementos
+- `TenantMementoBase` — abstract base class extending `MementoBase` with `ITenantMementoBase` for tenant-scoped mementos
+- 20 new tests covering error construction/equality, encryption markers, memento base properties, interface satisfaction, and round-trip integration
+
 ## 2026-03-28
 
 ### Added

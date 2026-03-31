@@ -71,7 +71,7 @@ public sealed record Error : IError
     /// </code>
     /// </example>
     public static IError Unspecified<T>(string message) =>
-        new Error(BuildCode(typeof(T), "Unspecified"), message);
+        new Error(BuildCode(typeof(T), nameof(Unspecified)), message);
 
     /// <summary>
     /// Builds a dot-separated error code from a type's full name and a member name.

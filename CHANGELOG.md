@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-03-31
+
+### Added
+
+- `Error.Create<T>(message)` — static factory that auto-generates dot-separated error codes from `typeof(T).FullName` + `[CallerMemberName]`
+- `Error.Unspecified<T>(message)` — static factory for catch-all errors with code ending in `.Unspecified`
+- Handles generic types (strips backtick/arity), nested types (`+` → `.`), and validates member names
+- 15 new tests for factory methods (125 total)
+
 ## 2026-03-30
 
 ### Added

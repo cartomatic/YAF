@@ -108,3 +108,126 @@ public class ErrorSourceTests
         public static readonly IError AlreadyExists = new Error("ALREADY_EXISTS", "The resource already exists.");
     }
 }
+
+public class ErrorCreateFactoryTests
+{
+    [Fact]
+    public void Create_SimpleType_ProducesFullyQualifiedCode()
+    {
+        var error = Error.Create<ErrorCreateFactoryTests>("Something went wrong.");
+
+        error.Code.Should().Be("Yaf.Domain.Tests.ErrorCreateFactoryTests.Create_SimpleType_ProducesFullyQualifiedCode");
+        error.Message.Should().Be("Something went wrong.");
+    }
+
+    [Fact]
+    public void Create_CallerMemberName_ResolvesFieldName() =>
+        SimpleErrorHolder.FieldError.Code.Should().Be($"{typeof(SimpleErrorHolder).FullName}.FieldError");
+
+    [Fact]
+    public void Create_CallerMemberName_ResolvesPropertyName() =>
+        SimpleErrorHolder.PropertyError.Code.Should().Be($"{typeof(SimpleErrorHolder).FullName}.PropertyError");
+
+    [Fact]
+    public void Create_NestedType_ReplacesPlusSeparatorWithDot()
+    {
+        var error = Error.Create<OuterClass.InnerClass>("Nested error.");
+
+        var expected = typeof(OuterClass.InnerClass).FullName!.Replace('+', '.');
+        error.Code.Should().StartWith(expected);
+    }
+
+    [Fact]
+    public void Create_GenericType_StripsBacktickAndArity()
+    {
+        var error = Error.Create<GenericHolder<string>>("Generic error.");
+
+        error.Code.Should().Be("Yaf.Domain.Tests.GenericHolder.Create_GenericType_StripsBacktickAndArity");
+    }
+
+    [Fact]
+    public void Create_MultiArityGenericType_StripsBacktickAndArity()
+    {
+        var error = Error.Create<MultiArityHolder<string, int>>("Multi-arity error.");
+
+        error.Code.Should().Be("Yaf.Domain.Tests.MultiArityHolder.Create_MultiArityGenericType_StripsBacktickAndArity");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_InvalidMessage_ThrowsArgumentException(string? message)
+    {
+        var act = () => Error.Create<ErrorCreateFactoryTests>(message!);
+
+        act.Should().Throw<ArgumentException>();
+    }
+}
+
+public class ErrorUnspecifiedFactoryTests
+{
+    [Fact]
+    public void Unspecified_ProducesCodeEndingWithUnspecified()
+    {
+        var error = Error.Unspecified<ErrorUnspecifiedFactoryTests>("An unexpected error.");
+
+        error.Code.Should().Be("Yaf.Domain.Tests.ErrorUnspecifiedFactoryTests.Unspecified");
+        error.Message.Should().Be("An unexpected error.");
+    }
+
+    [Fact]
+    public void Unspecified_NestedType_ReplacesPlusSeparator()
+    {
+        var error = Error.Unspecified<OuterClass.InnerClass>("Nested unspecified.");
+
+        var expected = typeof(OuterClass.InnerClass).FullName!.Replace('+', '.') + ".Unspecified";
+        error.Code.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Unspecified_GenericType_StripsBacktickAndArity()
+    {
+        var error = Error.Unspecified<GenericHolder<int>>("Generic unspecified.");
+
+        error.Code.Should().Be("Yaf.Domain.Tests.GenericHolder.Unspecified");
+    }
+
+    [Fact]
+    public void Unspecified_MultiArityGenericType_StripsBacktickAndArity()
+    {
+        var error = Error.Unspecified<MultiArityHolder<string, int>>("Multi-arity unspecified.");
+
+        error.Code.Should().Be("Yaf.Domain.Tests.MultiArityHolder.Unspecified");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Unspecified_InvalidMessage_ThrowsArgumentException(string? message)
+    {
+        var act = () => Error.Unspecified<ErrorUnspecifiedFactoryTests>(message!);
+
+        act.Should().Throw<ArgumentException>();
+    }
+}
+
+#region Test Types for Factory Methods
+
+internal class SimpleErrorHolder
+{
+    public static readonly IError FieldError = Error.Create<SimpleErrorHolder>("A field error.");
+    public static IError PropertyError => Error.Create<SimpleErrorHolder>("A property error.");
+}
+
+internal class OuterClass
+{
+    internal class InnerClass;
+}
+
+internal class GenericHolder<T>;
+
+internal class MultiArityHolder<T1, T2>;
+
+#endregion

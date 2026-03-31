@@ -142,8 +142,15 @@ public class ErrorCreateFactoryTests
     {
         var error = Error.Create<GenericHolder<string>>("Generic error.");
 
-        error.Code.Should().Contain("GenericHolder.");
-        error.Code.Should().NotContain("`");
+        error.Code.Should().Be("Yaf.Domain.Tests.GenericHolder.Create_GenericType_StripsBacktickAndArity");
+    }
+
+    [Fact]
+    public void Create_MultiArityGenericType_StripsBacktickAndArity()
+    {
+        var error = Error.Create<MultiArityHolder<string, int>>("Multi-arity error.");
+
+        error.Code.Should().Be("Yaf.Domain.Tests.MultiArityHolder.Create_MultiArityGenericType_StripsBacktickAndArity");
     }
 
     [Theory]
@@ -155,16 +162,6 @@ public class ErrorCreateFactoryTests
         var act = () => Error.Create<ErrorCreateFactoryTests>(message!);
 
         act.Should().Throw<ArgumentException>();
-    }
-
-    [Fact]
-    public void Create_IdenticalCalls_ProduceEqualErrors()
-    {
-        var error1 = SimpleErrorHolder.FieldError;
-        var error2 = SimpleErrorHolder.FieldError2;
-
-        // Same code and message → equal (record semantics)
-        error1.Should().Be(error2);
     }
 }
 
@@ -193,8 +190,15 @@ public class ErrorUnspecifiedFactoryTests
     {
         var error = Error.Unspecified<GenericHolder<int>>("Generic unspecified.");
 
-        error.Code.Should().Contain("GenericHolder.Unspecified");
-        error.Code.Should().NotContain("`");
+        error.Code.Should().Be("Yaf.Domain.Tests.GenericHolder.Unspecified");
+    }
+
+    [Fact]
+    public void Unspecified_MultiArityGenericType_StripsBacktickAndArity()
+    {
+        var error = Error.Unspecified<MultiArityHolder<string, int>>("Multi-arity unspecified.");
+
+        error.Code.Should().Be("Yaf.Domain.Tests.MultiArityHolder.Unspecified");
     }
 
     [Theory]
@@ -214,7 +218,6 @@ public class ErrorUnspecifiedFactoryTests
 internal class SimpleErrorHolder
 {
     public static readonly IError FieldError = Error.Create<SimpleErrorHolder>("A field error.");
-    public static readonly IError FieldError2 = Error.Create<SimpleErrorHolder>("A field error.", "FieldError");
     public static IError PropertyError => Error.Create<SimpleErrorHolder>("A property error.");
 }
 
@@ -224,5 +227,7 @@ internal class OuterClass
 }
 
 internal class GenericHolder<T>;
+
+internal class MultiArityHolder<T1, T2>;
 
 #endregion

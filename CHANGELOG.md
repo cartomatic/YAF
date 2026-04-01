@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-04-01
+
+### Added
+
+- Solution doc: specification pattern incompatibility with memento-based persistence (`docs/solutions/design-patterns/`)
+- Solution doc: auto-generated error codes with CallerMemberName (`docs/solutions/design-patterns/`)
+- Plan: specification pattern for domain layer — analyzed and rejected due to memento architecture tension (`docs/plans/`)
+- Diary: session documenting the specification pattern / memento misalignment discovery (`docs/diary/`)
+
 ## 2026-03-31
 
 ### Added

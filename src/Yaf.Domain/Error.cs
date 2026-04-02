@@ -43,15 +43,15 @@ public sealed record Error : IError
     /// Automatically populated by <see cref="CallerMemberNameAttribute"/>.
     /// Do not pass explicitly.
     /// </param>
-    /// <returns>An <see cref="IError"/> with code in the format <c>Namespace.Type.MemberName</c>.</returns>
+    /// <returns>An <see cref="Error"/> with code in the format <c>Namespace.Type.MemberName</c>.</returns>
     /// <example>
     /// <code>
     /// // Declared in MyApp.Domain.Orders.Order:
-    /// public static readonly IError EmptyCart = Error.Create&lt;Order&gt;("Cannot create an order with an empty cart.");
+    /// public static readonly Error EmptyCart = Error.Create&lt;Order&gt;("Cannot create an order with an empty cart.");
     /// // Produces code: "MyApp.Domain.Orders.Order.EmptyCart"
     /// </code>
     /// </example>
-    public static IError Create<T>(string message, [CallerMemberName] string memberName = "") =>
+    public static Error Create<T>(string message, [CallerMemberName] string memberName = "") =>
         new Error(BuildCode(typeof(T), memberName), message);
 
     /// <summary>
@@ -62,15 +62,15 @@ public sealed record Error : IError
     /// The type declaring this error. Used to derive the namespace and class portion of the code.
     /// </typeparam>
     /// <param name="message">Human-readable error message. Must not be null or whitespace.</param>
-    /// <returns>An <see cref="IError"/> with code in the format <c>Namespace.Type.Unspecified</c>.</returns>
+    /// <returns>An <see cref="Error"/> with code in the format <c>Namespace.Type.Unspecified</c>.</returns>
     /// <example>
     /// <code>
     /// // Declared in MyApp.Domain.Orders.Order:
-    /// public static readonly IError Unknown = Error.Unspecified&lt;Order&gt;("An unexpected error occurred.");
+    /// public static readonly Error Unknown = Error.Unspecified&lt;Order&gt;("An unexpected error occurred.");
     /// // Produces code: "MyApp.Domain.Orders.Order.Unspecified"
     /// </code>
     /// </example>
-    public static IError Unspecified<T>(string message) =>
+    public static Error Unspecified<T>(string message) =>
         new Error(BuildCode(typeof(T), nameof(Unspecified)), message);
 
     /// <summary>

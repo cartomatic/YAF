@@ -71,12 +71,12 @@ internal class Order :
         TenantId = memento.TenantId is { } t ? new TenantId(t) : null!;
     }
 
-    public override IReadOnlyCollection<IError> GetValidationErrors() =>
+    public override IReadOnlyCollection<Error> GetValidationErrors() =>
         string.IsNullOrWhiteSpace(Description)
-            ? [new OrderError("EMPTY_DESC", "Description cannot be empty")]
+            ? [new Error("EMPTY_DESC", "Description cannot be empty")]
             : [];
 
-    private record OrderError(string Code, string Message) : IError;
+
 }
 
 // --- Plain entity without cross-cutting interfaces (backward compat) ---
@@ -102,7 +102,7 @@ internal class PlainEntity : Entity<TestOrderId, PlainEntity, IPlainMemento>
 
     protected override void SnapshotCore(IPlainMemento memento) => memento.Label = Label;
     protected override void HydrateCore(IPlainMemento memento) => Label = memento.Label;
-    public override IReadOnlyCollection<IError> GetValidationErrors() => [];
+    public override IReadOnlyCollection<Error> GetValidationErrors() => [];
 }
 
 #endregion

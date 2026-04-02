@@ -174,17 +174,17 @@ public class AggregateRootMementoTests
             Total = memento.Total;
         }
 
-        public override IReadOnlyCollection<IError> GetValidationErrors()
+        public override IReadOnlyCollection<Error> GetValidationErrors()
         {
-            var errors = new List<IError>();
+            var errors = new List<Error>();
             if (string.IsNullOrWhiteSpace(Customer))
-                errors.Add(new InvoiceError("EMPTY_CUSTOMER", "Customer name cannot be empty"));
+                errors.Add(new Error("EMPTY_CUSTOMER", "Customer name cannot be empty"));
             if (Total < 0)
-                errors.Add(new InvoiceError("NEGATIVE_TOTAL", $"Total must be non-negative, got {Total}"));
+                errors.Add(new Error("NEGATIVE_TOTAL", $"Total must be non-negative, got {Total}"));
             return errors;
         }
 
-        private record InvoiceError(string Code, string Message) : IError;
+
     }
 
     [Fact]

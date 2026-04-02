@@ -231,7 +231,7 @@ internal class TestProduct :
     protected override void HydrateCore(TestProductMemento memento) =>
         Name = memento.Name;
 
-    public override IReadOnlyCollection<IError> GetValidationErrors() =>
+    public override IReadOnlyCollection<Error> GetValidationErrors() =>
         string.IsNullOrWhiteSpace(Name)
             ? [new Error("EMPTY_NAME", "Name cannot be empty.")]
             : [];
@@ -273,7 +273,7 @@ internal class TestTenantProduct :
         TenantId = memento.TenantId is { } t ? new TenantId(t) : null!;
     }
 
-    public override IReadOnlyCollection<IError> GetValidationErrors() =>
+    public override IReadOnlyCollection<Error> GetValidationErrors() =>
         string.IsNullOrWhiteSpace(Name)
             ? [new Error("EMPTY_NAME", "Name cannot be empty.")]
             : [];

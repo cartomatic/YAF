@@ -68,7 +68,7 @@ public class ErrorEqualityTests
     }
 
     [Fact]
-    public void ImplementsIError()
+    public void ImplementsIErrorInternally()
     {
         var error = new Error("CODE", "Message");
 
@@ -93,8 +93,8 @@ public class ErrorSourceTests
     {
         var errorFields = typeof(TestErrorSource)
             .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
-            .Where(f => typeof(IError).IsAssignableFrom(f.FieldType))
-            .Select(f => (IError)f.GetValue(null)!)
+            .Where(f => typeof(Error).IsAssignableFrom(f.FieldType))
+            .Select(f => (Error)f.GetValue(null)!)
             .ToList();
 
         errorFields.Should().HaveCount(2);
@@ -104,8 +104,8 @@ public class ErrorSourceTests
 
     private class TestErrorSource : IErrorSource
     {
-        public static readonly IError NotFound = new Error("NOT_FOUND", "The requested resource was not found.");
-        public static readonly IError AlreadyExists = new Error("ALREADY_EXISTS", "The resource already exists.");
+        public static readonly Error NotFound = new Error("NOT_FOUND", "The requested resource was not found.");
+        public static readonly Error AlreadyExists = new Error("ALREADY_EXISTS", "The resource already exists.");
     }
 }
 
@@ -217,8 +217,8 @@ public class ErrorUnspecifiedFactoryTests
 
 internal class SimpleErrorHolder
 {
-    public static readonly IError FieldError = Error.Create<SimpleErrorHolder>("A field error.");
-    public static IError PropertyError => Error.Create<SimpleErrorHolder>("A property error.");
+    public static readonly Error FieldError = Error.Create<SimpleErrorHolder>("A field error.");
+    public static Error PropertyError => Error.Create<SimpleErrorHolder>("A property error.");
 }
 
 internal class OuterClass

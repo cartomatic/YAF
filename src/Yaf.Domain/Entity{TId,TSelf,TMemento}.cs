@@ -72,5 +72,5 @@ public abstract class Entity<TId, TSelf, TMemento> : Entity<TId>, IMemento<TSelf
     protected abstract void HydrateCore(TMemento memento);
 
     /// <inheritdoc />
-    public abstract IReadOnlyCollection<IError> GetValidationErrors();
+    public abstract IReadOnlyCollection<Error> GetValidationErrors();
 }

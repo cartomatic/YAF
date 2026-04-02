@@ -19,7 +19,7 @@
 - [Domain Building Blocks](domain/20260324-1032-domain-building-blocks.md) — under review
 - [State Management — Memento Pattern](domain/20260324-1104-state-management-memento-pattern.md) — under review
 - [Domain Events and Integration Events](domain/20260324-1113-domain-events-and-integration-events.md) — under review
-- [Result and Error Pattern](domain/20260324-1140-result-and-error-pattern.md) — under review
+- [Result and Error Pattern](domain/20260324-1140-result-and-error-pattern.md) — accepted
 - [Validation Strategy](domain/20260324-1141-validation-strategy.md) — under review
 
 ## Infrastructure

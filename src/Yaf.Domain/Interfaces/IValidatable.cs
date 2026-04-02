@@ -14,5 +14,5 @@ public interface IValidatable
     /// An empty collection indicates valid state.
     /// </summary>
     /// <returns>A collection of validation errors, empty if valid.</returns>
-    IReadOnlyCollection<IError> GetValidationErrors();
+    IReadOnlyCollection<Error> GetValidationErrors();
 }

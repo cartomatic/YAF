@@ -19,8 +19,7 @@ namespace Yaf.Domain;
 public readonly struct Result<T> : IEquatable<Result<T>>
     where T : notnull
 {
-    private static readonly Error[] UninitializedErrors =
-        [new Error("Yaf.Domain.Result.Uninitialized", "Result was not properly initialized.")];
+    private static readonly Error[] UninitializedErrors = [Result.Uninitialized];
 
     private readonly T? _value;
     private readonly Error[]? _errors;

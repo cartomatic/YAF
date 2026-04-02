@@ -79,21 +79,21 @@ public class ValueObjectMementoTests
             B = memento.B;
         }
 
-        public override IReadOnlyCollection<IError> GetValidationErrors()
+        public override IReadOnlyCollection<Error> GetValidationErrors()
         {
-            var errors = new List<IError>();
+            var errors = new List<Error>();
 
             if (R < 0 || R > 255)
-                errors.Add(new ColorError("INVALID_R", $"R must be 0-255, got {R}"));
+                errors.Add(new Error("INVALID_R", $"R must be 0-255, got {R}"));
             if (G < 0 || G > 255)
-                errors.Add(new ColorError("INVALID_G", $"G must be 0-255, got {G}"));
+                errors.Add(new Error("INVALID_G", $"G must be 0-255, got {G}"));
             if (B < 0 || B > 255)
-                errors.Add(new ColorError("INVALID_B", $"B must be 0-255, got {B}"));
+                errors.Add(new Error("INVALID_B", $"B must be 0-255, got {B}"));
 
             return errors;
         }
 
-        private record ColorError(string Code, string Message) : IError;
+
     }
 
     [Fact]

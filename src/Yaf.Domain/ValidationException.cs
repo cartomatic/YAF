@@ -1,5 +1,3 @@
-using Yaf.Domain.Interfaces;
-
 namespace Yaf.Domain;
 
 /// <summary>
@@ -15,21 +13,21 @@ public sealed class ValidationException : Exception
     /// <summary>
     /// The validation errors that caused the failure.
     /// </summary>
-    public IReadOnlyCollection<IError> Errors { get; }
+    public IReadOnlyCollection<Error> Errors { get; }
 
     /// <summary>
     /// Initializes a new instance of <see cref="ValidationException"/>.
     /// </summary>
     /// <param name="objectType">The type that failed validation.</param>
     /// <param name="errors">The validation errors.</param>
-    public ValidationException(Type objectType, IReadOnlyCollection<IError> errors)
+    public ValidationException(Type objectType, IReadOnlyCollection<Error> errors)
         : base(FormatMessage(objectType, errors))
     {
         ObjectType = objectType;
         Errors = errors;
     }
 
-    private static string FormatMessage(Type objectType, IReadOnlyCollection<IError> errors)
+    private static string FormatMessage(Type objectType, IReadOnlyCollection<Error> errors)
     {
         ArgumentNullException.ThrowIfNull(objectType);
         ArgumentNullException.ThrowIfNull(errors);

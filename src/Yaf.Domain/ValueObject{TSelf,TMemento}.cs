@@ -53,5 +53,5 @@ public abstract record ValueObject<TSelf, TMemento> : ValueObject, IMemento<TSel
     /// Return an empty collection if the state is valid.
     /// </summary>
     /// <returns>A collection of validation errors, empty if valid.</returns>
-    public abstract IReadOnlyCollection<IError> GetValidationErrors();
+    public abstract IReadOnlyCollection<Error> GetValidationErrors();
 }

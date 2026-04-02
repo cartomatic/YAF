@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-04-02
+
+### Added
+
+- `Result<T>` — readonly struct for explicit success/failure outcomes with `IEquatable<Result<T>>`, implicit conversions from `T` (success) and `Error` (failure), `where T : notnull` constraint, and sentinel error for `default(Result<T>)`
+- `Result` — non-generic readonly struct for void-equivalent operations, plus static factory methods (`Success`, `Success<T>`, `Failure`, `Failure<T>`) for creating both generic and non-generic results
+- 49 new tests for Result types (175 total)
+
+### Changed
+
+- `IError` interface visibility changed from `public` to `internal` — only the concrete `Error` type is visible above the domain layer
+- `Error.Create<T>()` and `Error.Unspecified<T>()` now return `Error` (concrete) instead of `IError`
+- `IValidatable.GetValidationErrors()` now returns `IReadOnlyCollection<Error>` instead of `IReadOnlyCollection<IError>`
+- `ValidationException.Errors` now uses `IReadOnlyCollection<Error>` instead of `IReadOnlyCollection<IError>`
+- ADR "Result and Error Pattern" status changed from "under review" to "accepted"
+
 ## 2026-04-01
 
 ### Added

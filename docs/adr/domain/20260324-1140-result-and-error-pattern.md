@@ -1,7 +1,7 @@
 # Result and Error Pattern
 
 - **Timestamp:** 2026-03-24 11:40
-- **Status:** under review
+- **Status:** accepted
 - **Scope:** domain
 - **Stakeholders:** Proposed by: Claude Code, Decided by: @cartomatic
 
@@ -65,24 +65,38 @@ Custom `Result<T>` with a two-level error hierarchy and auto-discovery via `IErr
 
 ```
 // Yaf.Domain
-public readonly struct Result<T>
+public readonly struct Result<T> : IEquatable<Result<T>>
+    where T : notnull
 {
     public bool IsSuccess { get; }
     public bool IsFailure { get; }
-    public T Value { get; }           // throws if IsFailure
-    public IError Error { get; }      // throws if IsSuccess
+    public T Value { get; }                         // throws if IsFailure
+    public Error Error { get; }                     // first error; throws if IsSuccess
+    public IReadOnlyList<Error> Errors { get; }     // all errors; throws if IsSuccess
+
+    public static implicit operator Result<T>(T value);      // T → success
+    public static implicit operator Result<T>(Error error);  // Error → failure
 }
 ```
 
-**Usage in domain:**
+Key design decisions:
+- `where T : notnull` — prevents nullable success values at compile time
+- `default(Result<T>)` is a failure with a sentinel error (`"Yaf.Domain.Result.Uninitialized"`)
+- `.Error` returns first error (convenience); `.Errors` returns full collection
+- `IError` interface is `internal` — only `Error` (concrete) is visible above the domain layer
+- Multi-error `Failure` factories accept `IReadOnlyCollection<Error>` (matches updated `IValidatable`)
+- `Error.Create<T>()` and `Error.Unspecified<T>()` return `Error` (concrete) to enable implicit conversion
+- Equality via `IEquatable<Result<T>>` with explicit `operator ==`/`!=`
+
+**Usage in domain (with implicit conversions):**
 ```
 public Result<Order> AddItem(Product product, int quantity)
 {
     if (quantity <= 0)
-        return Result.Failure<Order>(OrderErrors.InvalidQuantity);
+        return InvalidQuantity;    // implicit Error → Result<Order>
 
     // ... business logic ...
-    return Result.Success(this);
+    return this;                   // implicit Order → Result<Order>
 }
 ```
 
@@ -98,19 +112,44 @@ public Result<OrderDto> Handle(PlaceOrderCommand command)
 }
 ```
 
-### Error Hierarchy
+### Result (Non-Generic)
 
 ```
-IError
+// Yaf.Domain — also hosts static factories for Result<T>
+public readonly struct Result : IEquatable<Result>
+{
+    public bool IsSuccess { get; }
+    public bool IsFailure { get; }
+    public Error Error { get; }
+    public IReadOnlyList<Error> Errors { get; }
+    // No .Value property
+
+    public static Result Success();
+    public static Result<T> Success<T>(T value) where T : notnull;
+    public static Result Failure(Error error);
+    public static Result Failure(IReadOnlyCollection<Error> errors);
+    public static Result<T> Failure<T>(Error error) where T : notnull;
+    public static Result<T> Failure<T>(IReadOnlyCollection<Error> errors) where T : notnull;
+}
+```
+
+### Error Types
+
+**Phase 1 (current):** `IError` is `internal`. The public API uses the concrete `Error` sealed record exclusively. All domain and application code works with `Error` directly.
+
+**Phase 2 (future):** If layered error semantics are needed, `IError` can be made public and extended:
+
+```
+IError (made public)
 ├── IDomainError        (domain-level: invariant violations, business rule failures)
 └── IApplicationError   (application-level: not found, unauthorized, validation)
 ```
 
-| Interface | Layer | Examples |
-|-----------|-------|---------|
-| `IError` | Domain | Base — code, message, metadata |
-| `IDomainError` | Domain | `OrderErrors.ExceedsLimit`, `CustomerErrors.Inactive` |
-| `IApplicationError` | Application | `NotFoundError`, `UnauthorizedError`, `ValidationError` |
+| Interface | Layer | Examples | Status |
+|-----------|-------|---------|--------|
+| `IError` | Domain | Base — code, message | Internal (Phase 1) |
+| `IDomainError` | Domain | `OrderErrors.ExceedsLimit`, `CustomerErrors.Inactive` | Future (Phase 2) |
+| `IApplicationError` | Application | `NotFoundError`, `UnauthorizedError`, `ValidationError` | Future (Phase 2) |
 
 ### Error Structure
 
@@ -118,9 +157,10 @@ Each error carries:
 
 | Field | Purpose |
 |-------|---------|
-| `Code` | Machine-readable identifier (e.g., `"ORDER_EXCEEDS_LIMIT"`) |
+| `Code` | Machine-readable identifier (e.g., `"MyApp.Domain.Orders.Order.ExceedsLimit"`) |
 | `Message` | Human-readable description |
-| `Metadata` | Optional key-value pairs for additional context |
+
+> **Note:** `Metadata` (optional key-value pairs) is planned for a future phase. The current `IError` interface has `Code` and `Message` only. Error codes are auto-generated via `Error.Create<T>()` using `CallerMemberName` + full type name.
 
 ### Error Declaration and Discovery
 
@@ -167,8 +207,20 @@ The API layer maps `Result<T>` errors to HTTP responses:
 | `ValidationError` | 400 Bad Request | ProblemDetails with validation details |
 | Unhandled exception | 500 Internal Server Error | ProblemDetails (no internal details exposed) |
 
+## Implementation Phasing
+
+This ADR is implemented incrementally:
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| **Phase 1** | `Result<T>`, `Result`, implicit conversions, `Error` factory return type change | Planned — [Plan](../../plans/20260402-1808-feat-result-pattern-plan.md) |
+| **Phase 2** | `IDomainError` / `IApplicationError` hierarchy | Not started |
+| **Phase 3** | `Metadata` on `IError`, monadic methods (`Map`, `Bind`, `Match`) | Not started |
+| **Phase 4** | API layer mapping to ProblemDetails | Not started |
+
 ## More Information
 
 - [YAF DDD Concepts Brainstorm](../../brainstorms/20260322-2036-yaf-ddd-concepts-brainstorm.md) — result pattern (section 11), error hierarchy (section 12)
 - [ADR: Domain Building Blocks](20260324-1032-domain-building-blocks.md) — construction returns Result\<T\>
 - [ADR: API Adapter — Controllers](../api/20260324-1325-api-adapter-controllers.md) — ProblemDetails mapping
+- [Implementation Plan: Result\<T\> Pattern](../../plans/20260402-1808-feat-result-pattern-plan.md) — Phase 1 detailed plan

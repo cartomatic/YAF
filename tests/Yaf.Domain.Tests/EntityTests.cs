@@ -159,17 +159,17 @@ public class EntityMementoTests
             Price = memento.Price;
         }
 
-        public override IReadOnlyCollection<IError> GetValidationErrors()
+        public override IReadOnlyCollection<Error> GetValidationErrors()
         {
-            var errors = new List<IError>();
+            var errors = new List<Error>();
             if (string.IsNullOrWhiteSpace(Name))
-                errors.Add(new ProductError("EMPTY_NAME", "Product name cannot be empty"));
+                errors.Add(new Error("EMPTY_NAME", "Product name cannot be empty"));
             if (Price < 0)
-                errors.Add(new ProductError("NEGATIVE_PRICE", $"Price must be non-negative, got {Price}"));
+                errors.Add(new Error("NEGATIVE_PRICE", $"Price must be non-negative, got {Price}"));
             return errors;
         }
 
-        private record ProductError(string Code, string Message) : IError;
+
     }
 
     [Fact]
@@ -309,15 +309,15 @@ public class EntityManualIdMementoTests
             Label = memento.Label;
         }
 
-        public override IReadOnlyCollection<IError> GetValidationErrors()
+        public override IReadOnlyCollection<Error> GetValidationErrors()
         {
-            var errors = new List<IError>();
+            var errors = new List<Error>();
             if (string.IsNullOrWhiteSpace(Label))
-                errors.Add(new ItemError("EMPTY_LABEL", "Label cannot be empty"));
+                errors.Add(new Error("EMPTY_LABEL", "Label cannot be empty"));
             return errors;
         }
 
-        private record ItemError(string Code, string Message) : IError;
+
     }
 
     [Fact]

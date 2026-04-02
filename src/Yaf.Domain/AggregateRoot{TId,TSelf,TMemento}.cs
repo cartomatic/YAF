@@ -72,5 +72,5 @@ public abstract class AggregateRoot<TId, TSelf, TMemento> : AggregateRoot<TId>, 
     protected abstract void HydrateCore(TMemento memento);
 
     /// <inheritdoc />
-    public abstract IReadOnlyCollection<IError> GetValidationErrors();
+    public abstract IReadOnlyCollection<Error> GetValidationErrors();
 }

@@ -14,7 +14,7 @@ namespace Yaf.Domain;
 public readonly struct Result : IEquatable<Result>
 {
     internal static readonly Error Uninitialized = Error.Create<Result>("Result was not properly initialized.");
-    private static readonly Error[] s_uninitializedErrors = [Uninitialized];
+    private static readonly Error[] _uninitializedErrors = [Uninitialized];
 
     private readonly Error[]? _errors;
     private readonly bool _isSuccess;
@@ -43,7 +43,7 @@ public readonly struct Result : IEquatable<Result>
     /// <exception cref="InvalidOperationException">Thrown when the result is a success.</exception>
     public Error Error => _isSuccess
         ? throw new InvalidOperationException("Cannot access Error on a successful result.")
-        : (_errors ?? s_uninitializedErrors)[0];
+        : (_errors ?? _uninitializedErrors)[0];
 
     /// <summary>
     /// Gets all errors as a read-only list.
@@ -52,7 +52,7 @@ public readonly struct Result : IEquatable<Result>
     /// <exception cref="InvalidOperationException">Thrown when the result is a success.</exception>
     public IReadOnlyList<Error> Errors => _isSuccess
         ? throw new InvalidOperationException("Cannot access Errors on a successful result.")
-        : _errors ?? s_uninitializedErrors;
+        : _errors ?? _uninitializedErrors;
 
     /// <summary>
     /// Implicitly converts an <see cref="Error"/> to a failed <see cref="Result"/>.
@@ -140,8 +140,8 @@ public readonly struct Result : IEquatable<Result>
         if (_isSuccess)
             return true;
 
-        var left = _errors ?? s_uninitializedErrors;
-        var right = other._errors ?? s_uninitializedErrors;
+        var left = _errors ?? _uninitializedErrors;
+        var right = other._errors ?? _uninitializedErrors;
 
         if (left.Length != right.Length)
             return false;
@@ -167,7 +167,7 @@ public readonly struct Result : IEquatable<Result>
 
         var hash = new HashCode();
         hash.Add(false);
-        foreach (var error in _errors ?? s_uninitializedErrors)
+        foreach (var error in _errors ?? _uninitializedErrors)
             hash.Add(error);
         return hash.ToHashCode();
     }

@@ -27,12 +27,25 @@ YAF (Yet Another Framework) is a .NET framework intended as a starting point for
 
 All documentation artifacts use a timestamped filename format: `yyyymmdd-hhmm-short-description.md` (dashes as word separators).
 
-| Type | Location |
-|------|----------|
-| Plans | `docs/plans/` |
-| Brainstorms | `docs/brainstorms/` |
-| Research | `docs/research/` |
-| Diary | `docs/diary/` |
+| Type | Location | Owner |
+|------|----------|-------|
+| Plans | `.ce/plans/` | compound-engineering plugin |
+| Brainstorms | `.ce/brainstorms/` | compound-engineering plugin |
+| Research | `.ce/research/` | compound-engineering plugin |
+| Solutions & learnings | `.ce/solutions/<category>/` | compound-engineering plugin |
+| Verification & reviews | `.ce/verification/` | compound-engineering plugin |
+| Diary | `docs/diary/` | project |
+| ADRs | `docs/adr/` | project |
+| General docs | `docs/general/` | project |
+
+### Plugin Artifact Directories
+
+Each Claude Code plugin stores its artifacts in a dedicated dotfile directory at the repo root:
+
+- **`.ce/`** — compound-engineering plugin artifacts (plans, brainstorms, research, solutions, verification)
+- **`.maister/`** — maister plugin artifacts
+
+Plugins must use their assigned directory and must not write artifacts to `docs/` or to each other's directories.
 
 ### Session Diary
 

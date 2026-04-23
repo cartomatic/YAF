@@ -33,24 +33,30 @@ All documentation artifacts use a timestamped filename: `yyyymmdd-hhmm-short-des
 
 ### Directory Structure
 
-| Type | Location |
-|------|----------|
-| Plans | `docs/plans/` |
-| Brainstorms | `docs/brainstorms/` |
-| Research | `docs/research/` |
-| Session diaries | `docs/diary/` |
-| Verification & reviews | `docs/verification/` |
-| Solutions & learnings | `docs/solutions/<category>/` |
-| ADRs | `docs/adr/<scope>/` with `INDEX.md` |
+Each Claude Code plugin stores its artifacts in a dedicated dotfile directory at the repo root. Project-level docs remain in `docs/`.
+
+| Type | Location | Owner |
+|------|----------|-------|
+| Plans | `.ce/plans/` | compound-engineering plugin |
+| Brainstorms | `.ce/brainstorms/` | compound-engineering plugin |
+| Research | `.ce/research/` | compound-engineering plugin |
+| Verification & reviews | `.ce/verification/` | compound-engineering plugin |
+| Solutions & learnings | `.ce/solutions/<category>/` | compound-engineering plugin |
+| Maister artifacts | `.maister/` | maister plugin |
+| Session diaries | `docs/diary/` | project |
+| ADRs | `docs/adr/<scope>/` with `INDEX.md` | project |
+| General docs | `docs/general/` | project |
+
+Plugins must use their assigned directory and must not write artifacts to `docs/` or to each other's directories.
 
 ### Verification Artifacts
 
-All files in `docs/verification/` (spec audits, code reviews, pragmatic reviews) must be prefixed with the originating plan's date-name identifier so they are traceable to the feature they belong to.
+All files in `.ce/verification/` (spec audits, code reviews, pragmatic reviews) must be prefixed with the originating plan's date-name identifier so they are traceable to the feature they belong to.
 
-Example for plan `docs/plans/20260327-0936-feat-cross-cutting-domain-interfaces-plan.md`:
-- `docs/verification/20260327-0936-feat-cross-cutting-domain-interfaces-spec-audit-v2.md`
-- `docs/verification/20260327-0936-feat-cross-cutting-domain-interfaces-code-review.md`
-- `docs/verification/20260327-0936-feat-cross-cutting-domain-interfaces-pragmatic-review-v1.md`
+Example for plan `.ce/plans/20260327-0936-feat-cross-cutting-domain-interfaces-plan.md`:
+- `.ce/verification/20260327-0936-feat-cross-cutting-domain-interfaces-spec-audit-v2.md`
+- `.ce/verification/20260327-0936-feat-cross-cutting-domain-interfaces-code-review.md`
+- `.ce/verification/20260327-0936-feat-cross-cutting-domain-interfaces-pragmatic-review-v1.md`
 
 ### ADR Location
 
@@ -64,4 +70,4 @@ Each scope folder has an `INDEX.md` listing all ADRs. The root `docs/adr/INDEX.m
 
 ### Solution Documents
 
-Documented solutions go in `docs/solutions/<category>/` with YAML frontmatter for searchability. Categories include: `design-patterns/`, `build-errors/`, `test-failures/`, `runtime-errors/`, `logic-errors/`, `performance-issues/`.
+Documented solutions go in `.ce/solutions/<category>/` with YAML frontmatter for searchability. Categories include: `design-patterns/`, `build-errors/`, `test-failures/`, `runtime-errors/`, `logic-errors/`, `performance-issues/`.

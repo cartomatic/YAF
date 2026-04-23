@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## 2026-04-23
 
+### Changed
+
+- Moved compound-engineering plugin artifacts from `docs/` to `.ce/` (plans, brainstorms, research, solutions, verification)
+- Updated CLAUDE.md, contributing conventions, and README to reflect new plugin artifact directory structure
+
 ### Removed
 
 - `global.json` — removed pinned SDK version (10.0.200) to allow building with any installed .NET 10 SDK

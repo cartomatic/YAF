@@ -6,10 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## 2026-04-23
 
+### Added
+
+- `.maister/` directory with maister plugin initialization: project docs (vision, roadmap, tech stack, architecture) and 33 discovered coding standards across global, backend, and testing categories
+- CLAUDE.md sections for project documentation, documentation priority order, and AI SDLC workflows covering both plugins
+
 ### Changed
 
 - Moved compound-engineering plugin artifacts from `docs/` to `.ce/` (plans, brainstorms, research, solutions, verification)
 - Updated CLAUDE.md, contributing conventions, and README to reflect new plugin artifact directory structure
+- `.editorconfig`: allow primary constructors (`csharp_style_prefer_primary_constructors = true`)
 
 ### Removed
 

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-04-23
+
+### Removed
+
+- `global.json` — removed pinned SDK version (10.0.200) to allow building with any installed .NET 10 SDK
+
 ## 2026-04-02
 
 ### Added

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-04-24
+
+### Added
+
+- Research: automated domain event collection with memento-separated persistence — 4-source investigation, high-level architecture design, 5 MADR decision records
+
 ## 2026-04-23
 
 ### Added

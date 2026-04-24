@@ -1,0 +1,73 @@
+orchestrator:
+  started_phase: phase-6
+  completed_phases: ["phase-1", "phase-2", "phase-3", "phase-4", "phase-5", "phase-6"]
+  failed_phases: []
+  auto_fix_attempts:
+    phase-1: 0
+  options:
+    brainstorming_enabled: false
+    design_enabled: true
+  created: "2026-04-23T22:41:00+02:00"
+  updated: "2026-04-23T22:41:00+02:00"
+  task_path: .maister/tasks/research/2026-04-23-domain-event-collection-with-memento-separation
+  task_ids:
+    phase-1: "1"
+    phase-2: "2"
+    phase-3: "3"
+    phase-4: "4"
+    phase-5: "5"
+    phase-6: "6"
+
+task:
+  title: "Automated domain event collection with memento-based persistence separation"
+  description: >
+    Research approaches for automatically collecting domain events from aggregate roots
+    when infrastructure only sees mementos (DTOs), not domain objects. The memento pattern
+    separates domain objects from storage, so EF Core cannot access domain events during
+    SaveChanges. Need approaches that minimize developer effort — ideally fully automated.
+  status: completed
+  tags: [domain-events, memento, ddd, infrastructure, automation]
+  priority: high
+
+research_context:
+  research_type: "mixed"
+  research_question: >
+    How can domain events be automatically collected from aggregate roots when the
+    infrastructure layer only interacts with mementos (DTOs), given that:
+    (1) domain objects are separated from storage via memento pattern,
+    (2) EF Core only sees mementos, not domain objects,
+    (3) repositories map domain objects to/from mementos,
+    (4) requiring manual event collection in every repository is error-prone,
+    (5) the ADR mandates explicit dispatch after SaveChanges/before CommitAsync?
+  scope:
+    included:
+      - domain event collection mechanisms
+      - unit of work patterns with event dispatch
+      - repository patterns that track domain objects
+      - infrastructure-level automation approaches
+      - .NET/C# specific patterns and libraries
+    excluded:
+      - integration events (deferred per ADR)
+      - message broker implementation
+      - event sourcing (different architectural choice)
+    constraints:
+      - zero-dependency domain layer (YAF constraint)
+      - memento pattern must remain (architectural decision)
+      - explicit dispatch per ADR (not implicit SaveChanges override)
+      - minimize developer effort in consuming code
+  methodology: ["codebase-analysis", "literature-review", "ecosystem-survey", "industry-patterns"]
+  sources: ["yaf-codebase", "ddd-literature", "dotnet-ecosystem", "industry-approaches"]
+  confidence_level: "high"
+  gathering_strategy:
+    categories: ["codebase", "ddd-patterns", "dotnet-ecosystem", "external-approaches"]
+    count: 4
+    source: "planner"
+  phase_summaries:
+    phase-1:
+      summary: >
+        19 patterns identified across 4 source categories. 4/4 sources independently converge on
+        the aggregate tracker pattern: scoped IAggregateTracker + generic MementoRepository base class
+        + custom IDomainEventDispatcher. No domain layer changes needed. Overall confidence: high (90-95%).
+        Key gap: the "lost reference" problem where aggregate roots (with events) are discarded after
+        memento conversion. Solution: maintain aggregate references in infrastructure via scoped tracking.
+      steps_completed: ["init", "plan", "gather", "synthesize"]

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-04-26
+
+### Added
+
+- `Yaf.Application` class library project with reference to `Yaf.Domain` and `InternalsVisibleTo` for tests
+- `Yaf.Application.Tests` xUnit test project with AwesomeAssertions, matching domain test project setup
+
 ## 2026-04-24
 
 ### Added

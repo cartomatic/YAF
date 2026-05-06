@@ -1,0 +1,85 @@
+orchestrator:
+  started_phase: phase-1
+  completed_phases: [phase-1, phase-2, phase-5, phase-6, phase-7, phase-8, phase-10, phase-11]
+  failed_phases: []
+  auto_fix_attempts:
+    phase-1: 0
+    phase-2: 0
+    phase-5: 0
+    phase-7: 0
+    phase-8: 0
+    phase-11: 0
+  options:
+    spec_audit_enabled: true
+    skip_test_suite: true
+    e2e_enabled: false
+    user_docs_enabled: false
+    code_review_enabled: true
+    pragmatic_review_enabled: true
+    reality_check_enabled: true
+    production_check_enabled: true
+  created: "2026-04-26T00:00:00Z"
+  updated: "2026-04-26T00:00:00Z"
+  task_path: .maister/tasks/development/2026-04-26-application-cqrs-abstractions
+  task_ids:
+    phase-1: "1"
+    phase-2: "2"
+    phase-5: "3"
+    phase-6: "4"
+    phase-7: "5"
+    phase-8: "6"
+    phase-10: "7"
+    phase-11: "8"
+    phase-14: "9"
+  task_context:
+    risk_level: low
+    clarifications_resolved: null
+    scope_expanded: null
+    architecture_decision: null
+    task_characteristics:
+      has_reproducible_defect: false
+      modifies_existing_code: false
+      creates_new_entities: true
+      involves_data_operations: false
+      ui_heavy: false
+    research_reference:
+      path: null
+      research_question: null
+      research_type: null
+      confidence_level: null
+    phase_summaries:
+      research: {summary: null, key_findings: [], recommended_approach: null}
+      codebase_analysis:
+        key_files:
+          - docs/adr/architecture/20260324-1144-cqrs-and-mediator-abstraction.md
+          - docs/adr/architecture/20260324-1146-application-layer-patterns.md
+          - docs/adr/domain/20260324-1141-validation-strategy.md
+          - src/Yaf.Domain/Result{T}.cs
+          - src/Yaf.Domain/Interfaces/IDomainEvent.cs
+          - .maister/docs/standards/backend/api.md
+        primary_language: csharp
+        summary: "Empty Yaf.Application project ready for greenfield CQRS interfaces. ADR 20260324-1144 fully specifies 6 interfaces. Domain layer provides mature patterns (IDomainEvent, Result<T>) as templates. Low complexity, low risk."
+      clarifications:
+          - "Full ADR scope: CQRS + notifications + validation + context providers + sanitization + business event log"
+          - "Two-level command hierarchy: non-generic ICommand (void) + generic ICommand<TResult>"
+      gap_analysis:
+        integration_points:
+          - "Yaf.Domain Result<T>/Error for handler return types"
+          - "Future adapter packages (Yaf.Application.Wolverine)"
+          - "Future Yaf.Api layer for dispatching"
+          - "Consumer application handler implementations"
+        summary: "All ~17 interfaces across 5 concerns must be created from scratch. ADR specs are detailed. Low risk, no existing code modified."
+      scope_clarifications:
+        scope_expanded: false
+        summary: "ISanitizable in Application (ADR override), sub-namespaces per concern, sync context providers, record BusinessLogEntry"
+      ui_mockups: {components_designed: [], summary: null}
+      specification:
+        summary: "17 types across 6 sub-namespaces. CQRS with two-level command hierarchy, async handlers returning Result/Result<T>. Notifications, validation, context providers, sanitization, and audit log."
+      architecture_decision: {decision: null, summary: null}
+
+task:
+  title: "Add CQRS abstractions to Yaf.Application"
+  description: "Add ICommand/IQuery/ICommandHandler/IQueryHandler CQRS abstractions to Yaf.Application - mediator-agnostic command and query interfaces for the application layer"
+  status: in_progress
+  tags: [application-layer, cqrs, interfaces]
+  priority: medium

@@ -1,7 +1,7 @@
 # Validation Strategy
 
 - **Timestamp:** 2026-03-24 11:41
-- **Status:** under review
+- **Status:** accepted
 - **Scope:** domain
 - **Stakeholders:** Proposed by: Claude Code, Decided by: @cartomatic
 
@@ -111,12 +111,14 @@ public interface IValidatable
 `IValidator<T>` runs before the command/query handler:
 
 ```
-// Yaf.Application
+// Yaf.Application.Validation
 public interface IValidator<in T>
 {
-    Result Validate(T instance);
+    Task<Result> ValidateAsync(T instance, CancellationToken cancellationToken);
 }
 ```
+
+The signature is asynchronous — application-level validation typically requires repository lookups, claims-based permission checks, or other I/O. A synchronous validator interface would force every implementation that needs to look up state to either block or carry an awkward sync/async split. The `Result` (non-generic) return type signals that validation produces pass/fail with errors, not a transformed value: the original instance flows onward unchanged.
 
 The CQRS pipeline automatically runs all registered validators for a command/query before dispatching to the handler. If any validator returns a failure, the handler is never called and the validation errors are returned.
 
@@ -154,7 +156,7 @@ API Request
   → FluentValidation (input shape)
     ✗ → 400 Bad Request (ProblemDetails with validation details)
     ✓ → Map to Command/Query
-      → Sanitization (clean ISanitizable inputs)
+      → Sanitization (clean inputs marked with [Sanitize])
         → Application IValidator<T> pipeline (business preconditions — validates sanitized data)
           ✗ → appropriate error (via Result<T> → ProblemDetails)
           ✓ → Handler executes

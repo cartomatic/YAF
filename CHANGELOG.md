@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-05-06
+
+### Added
+
+- **CQRS abstractions** in `Yaf.Application.Cqrs`: `ICommand` (void), `ICommand<out TResult>` (covariant marker, inherits ICommand), `ICommandHandler<in TCommand>` (returns `Task<Result>`), `ICommandHandler<in TCommand, TResult>` (returns `Task<Result<TResult>>`), `IQuery<out TResult>` (covariant marker), `IQueryHandler<in TQuery, TResult>` (returns `Task<Result<TResult>>`)
+- **Notifications** in `Yaf.Application.Notifications`: `INotification` (marker), `INotificationHandler<in TNotification>` (returns `Task` for fan-out)
+- **Validation** in `Yaf.Application.Validation`: `IValidator<in T>` (async `Task<Result> ValidateAsync`)
+- **Context providers** in `Yaf.Application.Context`: `ITenantContextProvider` (TenantId?), `IIdentityContextProvider` (ActorId), `ICorrelationIdProvider` (Guid), `IActivityIdProvider` (string?)
+- **Sanitization** in `Yaf.Application.Sanitization`: `[Sanitize]` attribute (per-property or per-class with auto-coverage of string/string[]/List<string>/IList<string>/IReadOnlyList<string>), `ISanitizer` with unconstrained `T Sanitize<T>(T)` method
+- **Business event log** in `Yaf.Application.Audit`: `BusinessLogEntry` (sealed record, 9 properties, primitive types for storage), `IBusinessEventLog.AppendAsync` (parameter-based: what/aggregateType/aggregateId Guid/metadata/cancellationToken)
+- 35 application-layer tests covering contract shape, variance, generic constraints, and end-to-end pipeline composition (Sanitize → Validate → Handle)
+
+### Changed
+
+- ADR drift documented inline in source XML and in spec: `IValidator<T>` async (vs ADR-1141 sync), `[Sanitize]` attribute (vs ADR-1146 `ISanitizable` marker), non-generic `ICommand` added (vs ADR-1144), `BusinessLogEntry` field renames and type changes (vs ADR-1146), `IBusinessEventLog.AppendAsync` parameter-based (vs ADR-1146 entry-based example)
+- ADR 20260324-1141 (Validation Strategy) — updated `IValidator<T>` signature to async `Task<Result> ValidateAsync(T, CancellationToken)`; status → accepted
+- ADR 20260324-1144 (CQRS and Mediator Abstraction) — added non-generic `ICommand`, covariant `ICommand<out TResult>` / `IQuery<out TResult>`, two `ICommandHandler` overloads; documented variance constraints (CS1961 on handler `TResult`); status → accepted
+- ADR 20260324-1146 (Application Layer Patterns) — replaced `ISanitizable` marker with `[Sanitize]` attribute (per-property or per-class auto-cover for string-shaped properties); `BusinessLogEntry.AggregateId` is `Guid` (typed-IDs are Guid-backed), renamed `IdentityId` → `ActorId`, `ActivityId` is `string?` (W3C trace context); `IBusinessEventLog.AppendAsync` is parameter-based; status → accepted
+
 ## 2026-04-26
 
 ### Added

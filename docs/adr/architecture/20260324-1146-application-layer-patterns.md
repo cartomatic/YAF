@@ -1,7 +1,7 @@
 # Application Layer Patterns
 
 - **Timestamp:** 2026-03-24 11:46
-- **Status:** under review
+- **Status:** accepted
 - **Scope:** architecture
 - **Stakeholders:** Proposed by: Claude Code, Decided by: @cartomatic
 
@@ -32,7 +32,8 @@ The Application layer (Yaf.Application) orchestrates domain operations without c
 
 | Option | Assessment |
 |--------|------------|
-| **`ISanitizable` marker + pipeline sanitization** | **Selected.** Domain marks properties/types that need sanitization. Application pipeline applies it automatically before handler execution. |
+| **`[Sanitize]` attribute + pipeline sanitization** | **Selected.** Application defines a `[Sanitize]` attribute that targets individual properties or whole types. The pipeline sanitizer reflects on the instance and applies the configured rules to opted-in members. Lives in `Yaf.Application.Sanitization` — sanitization is a pipeline concern, not a domain concern. |
+| `ISanitizable` marker interface | Earlier draft. Type-level only — cannot opt in individual fields. The attribute form expresses sanitization at the field level when desired and composes with class-level opt-in for the common "sanitize all strings" case. |
 | Manual sanitization in handlers | Repetitive, easy to forget. One missed handler is a vulnerability. |
 | Sanitization in the API layer only | API can catch HTML in request DTOs, but if commands are constructed from other sources (events, background jobs), those inputs are unsanitized. Application boundary is safer. |
 
@@ -46,7 +47,7 @@ The Application layer (Yaf.Application) orchestrates domain operations without c
 
 ## Recommendation
 
-Dedicated context provider interfaces, pipeline sanitization with `ISanitizable`, and an append-only business event log. All defined in Application, implemented in Infrastructure.
+Dedicated context provider interfaces, pipeline sanitization with the `[Sanitize]` attribute, and an append-only business event log. All defined in Application, implemented in Infrastructure.
 
 ## Consequences
 
@@ -58,7 +59,7 @@ Dedicated context provider interfaces, pipeline sanitization with `ISanitizable`
 
 **Negative:**
 - Four separate context providers means four DI registrations and four constructor parameters where all are needed (mitigated: most code only needs one or two)
-- Pipeline sanitization adds a processing step to every command (mitigated: only processes types marked `ISanitizable`)
+- Pipeline sanitization adds a processing step to every command (mitigated: only processes properties marked with `[Sanitize]` or types whose declaration carries the attribute)
 - Business event log is another thing to persist — storage and query infrastructure needed
 
 ## Conclusion
@@ -93,15 +94,35 @@ The correlation ID stays the same across the entire chain. Activity IDs may fork
 
 | Concept | Layer | Description |
 |---------|-------|-------------|
-| `ISanitizable` | Domain | Marker interface on types/properties requiring sanitization |
-| `ISanitizer` | Application | Interface for sanitization logic (HTML stripping, XSS prevention) |
-| Sanitization pipeline | Application | Automatically applies `ISanitizer` to `ISanitizable` inputs before handler execution |
+| `[Sanitize]` attribute | Application | Marks individual properties or whole types as opted in to sanitization. When applied to a type, every supported string-shaped property (`string`, `string[]`, `List<string>`, `IList<string>`, `IReadOnlyList<string>`) is sanitized automatically. |
+| `ISanitizer` | Application | Interface for sanitization logic. Single method `T Sanitize<T>(T instance)` — synchronous, returns a sanitized copy (record-friendly), no marker-interface constraint. |
+| Sanitization pipeline | Application | Automatically applies `ISanitizer` before handler execution by reflecting on the instance type for `[Sanitize]` annotations. |
 | Sanitizer implementations | Infrastructure | Concrete sanitizers (e.g., HtmlSanitizer-based) |
 
 **Pipeline position:** Sanitization runs **before** validation, before handler execution. Inputs are cleaned first (strip dangerous content), then validated against the sanitized values (reject invalid input), then processed. This ensures validation rules operate on safe, clean data.
 
 ```
 Request → Sanitization → Validation → Handler
+```
+
+**Per-property usage:**
+
+```
+public sealed record RegisterUserCommand(
+    [property: Sanitize] string Email,
+    string DisplayName) : ICommand<ActorId>;
+```
+
+**Per-type usage** (auto-applies to all string-shaped properties):
+
+```
+[Sanitize]
+public sealed record CreatePostCommand(
+    string Title,
+    string Body,
+    IReadOnlyList<string> Tags,
+    int Priority) : ICommand<PostId>;
+// Title, Body, and Tags are sanitized automatically; Priority is left alone.
 ```
 
 ### Business Event Log
@@ -117,14 +138,16 @@ Request → Sanitization → Validation → Handler
 | Field | Type | Source |
 |-------|------|--------|
 | `What` | string | Description of what happened (e.g., "Order placed") |
-| `AggregateType` | string | Type of the aggregate involved |
-| `AggregateId` | string | ID of the aggregate |
+| `AggregateType` | string | Type name of the aggregate involved |
+| `AggregateId` | Guid | Underlying value of the aggregate's typed ID. YAF typed IDs are `Guid`-backed (see `TypedId`), so the entry stores the value directly without stringification. |
 | `TenantId` | Guid? | From `ITenantContextProvider` |
-| `IdentityId` | Guid | From `IIdentityContextProvider` |
+| `ActorId` | Guid | From `IIdentityContextProvider`. (Renamed from `IdentityId` to align with the `ActorId` typed ID and `IActorScoped` vocabulary used elsewhere in YAF.) |
 | `CorrelationId` | Guid | From `ICorrelationIdProvider` |
-| `ActivityId` | Guid | From `IActivityIdProvider` |
+| `ActivityId` | string? | From `IActivityIdProvider`. W3C trace-context format (e.g., `"00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"`), nullable when no `System.Diagnostics.Activity` is active. |
 | `OccurredAtUtc` | DateTimeOffset | System clock |
-| `Metadata` | Dictionary? | Optional additional context |
+| `Metadata` | `IReadOnlyDictionary<string, object>?` | Optional additional context. Values should be JSON-serializable primitives or simple structures. |
+
+Context fields are stored as primitive `Guid` / `string` types rather than domain typed-IDs (`TenantId`, `ActorId`) because `BusinessLogEntry` is a DTO that crosses the persistence boundary; readers (queries, projections) shouldn't have to reconstruct domain types just to read a stored value.
 
 **Characteristics:**
 - **Append-only** — entries are never modified or deleted
@@ -132,18 +155,30 @@ Request → Sanitization → Validation → Handler
 - **Human-readable** — descriptions are meaningful to non-technical users ("Order #1234 placed by John Doe"), not technical ("INSERT into Orders")
 - **Queryable** — by aggregate, tenant, identity, time range, correlation
 
-**Usage:** Command handlers (or domain event handlers) append entries as part of the operation:
+**Usage:** Command handlers (or domain event handlers) append entries as part of the operation. The interface uses parameter-based call shape rather than passing a fully constructed `BusinessLogEntry`, so callers don't need to invent placeholder values for context fields the implementation will overwrite:
 
 ```
-await businessEventLog.AppendAsync(new BusinessLogEntry
+public interface IBusinessEventLog
 {
-    What = $"Order {order.Id} placed with {order.Items.Count} items",
-    AggregateType = nameof(Order),
-    AggregateId = order.Id.ToString()
-});
+    Task AppendAsync(
+        string what,
+        string aggregateType,
+        Guid aggregateId,
+        IReadOnlyDictionary<string, object>? metadata,
+        CancellationToken cancellationToken);
+}
 ```
 
-Context fields (tenant, identity, correlation, activity) are auto-populated from context providers — the caller doesn't supply them.
+Implementations construct the `BusinessLogEntry` from the supplied parameters plus context fields (`TenantId`, `ActorId`, `CorrelationId`, `ActivityId`, `OccurredAtUtc`) sourced from context providers and a system clock. `AppendAsync` returns plain `Task` (not `Task<Result>`) because audit failures are infrastructure faults — they surface as thrown exceptions, not recoverable business outcomes.
+
+```
+await businessEventLog.AppendAsync(
+    what: $"Order {order.Id} placed with {order.Items.Count} items",
+    aggregateType: nameof(Order),
+    aggregateId: order.Id.Value,
+    metadata: null,
+    cancellationToken: ct);
+```
 
 ### Application Services
 

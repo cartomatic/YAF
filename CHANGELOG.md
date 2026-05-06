@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - ADR drift documented inline in source XML and in spec: `IValidator<T>` async (vs ADR-1141 sync), `[Sanitize]` attribute (vs ADR-1146 `ISanitizable` marker), non-generic `ICommand` added (vs ADR-1144), `BusinessLogEntry` field renames and type changes (vs ADR-1146), `IBusinessEventLog.AppendAsync` parameter-based (vs ADR-1146 entry-based example)
+- ADR 20260324-1141 (Validation Strategy) — updated `IValidator<T>` signature to async `Task<Result> ValidateAsync(T, CancellationToken)`; status → accepted
+- ADR 20260324-1144 (CQRS and Mediator Abstraction) — added non-generic `ICommand`, covariant `ICommand<out TResult>` / `IQuery<out TResult>`, two `ICommandHandler` overloads; documented variance constraints (CS1961 on handler `TResult`); status → accepted
+- ADR 20260324-1146 (Application Layer Patterns) — replaced `ISanitizable` marker with `[Sanitize]` attribute (per-property or per-class auto-cover for string-shaped properties); `BusinessLogEntry.AggregateId` is `Guid` (typed-IDs are Guid-backed), renamed `IdentityId` → `ActorId`, `ActivityId` is `string?` (W3C trace context); `IBusinessEventLog.AppendAsync` is parameter-based; status → accepted
 
 ## 2026-04-26
 

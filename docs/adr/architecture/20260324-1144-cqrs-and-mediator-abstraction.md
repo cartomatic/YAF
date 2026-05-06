@@ -1,7 +1,7 @@
 # CQRS and Mediator Abstraction
 
 - **Timestamp:** 2026-03-24 11:44
-- **Status:** under review
+- **Status:** accepted
 - **Scope:** architecture
 - **Stakeholders:** Proposed by: Claude Code, Decided by: @cartomatic
 
@@ -66,16 +66,34 @@ YAF-owned CQRS abstractions with Wolverine as the first adapter. The abstraction
 
 ## Conclusion
 
-### Abstractions (Yaf.Application)
+### Abstractions (Yaf.Application.Cqrs / .Notifications)
 
 | Interface | Purpose | Dispatch |
 |-----------|---------|----------|
-| `ICommand<TResult>` | Represents a state-mutating operation | Single handler, returns `Result<TResult>` |
-| `ICommandHandler<TCommand, TResult>` | Handles a specific command | One handler per command |
-| `IQuery<TResult>` | Represents a read operation | Single handler, returns `Result<TResult>` |
-| `IQueryHandler<TQuery, TResult>` | Handles a specific query | One handler per query |
+| `ICommand` | Represents a state-mutating operation with no return value | Single handler, returns `Task<Result>` |
+| `ICommand<out TResult>` | Represents a state-mutating operation that produces a typed value (covariant marker, inherits `ICommand`) | Single handler, returns `Task<Result<TResult>>` |
+| `ICommandHandler<in TCommand>` | Handles a void command | One handler per command |
+| `ICommandHandler<in TCommand, TResult>` | Handles a typed-result command | One handler per command |
+| `IQuery<out TResult>` | Represents a read operation (covariant marker) | Single handler, returns `Task<Result<TResult>>` |
+| `IQueryHandler<in TQuery, TResult>` | Handles a specific query | One handler per query |
 | `INotification` | Represents a fan-out message | Multiple handlers |
-| `INotificationHandler<TNotification>` | Handles a specific notification | Zero or more per notification |
+| `INotificationHandler<in TNotification>` | Handles a specific notification (returns `Task` — fan-out has no aggregated outcome) | Zero or more per notification |
+
+### Variance and Constraints
+
+- **Marker interfaces** (`ICommand<TResult>`, `IQuery<TResult>`) are covariant in `TResult` (`out`). Markers have no members, so `TResult` appears in no constraining position; covariance permits `ICommand<Derived>` references to be assigned where `ICommand<Base>` is expected. Mirrors the existing `IDomainEvent<out T>` convention.
+- **Handler input parameters** are contravariant (`in TCommand`, `in TQuery`, `in TNotification`) so that a base-typed handler can stand in where a derived-typed handler is required.
+- **Handler `TResult` is invariant.** `Task<Result<TResult>>` nests `TResult` inside two invariant generics: `Task<T>` (BCL) and `Result<T>` (a `readonly struct`; structs cannot have variance annotations in C#). Declaring `out TResult` on the handler is rejected by the compiler with CS1961.
+- All `TResult` parameters that flow through `Result<T>` are constrained to `where TResult : notnull` to match `Result<T>`'s own constraint.
+
+### Two-Level Command Hierarchy
+
+The non-generic `ICommand` is a YAF-specific addition not present in MediatR or Wolverine. It exists so that:
+
+1. Void commands return `Result` (success/failure only) without an artificial `Unit` payload.
+2. Pipeline behaviors that target every command — logging, sanitization, validation — can constrain on `ICommand` uniformly regardless of whether the command produces a typed value.
+
+`ICommand<out TResult>` inherits from `ICommand`, so any code reasoning about "any command" can reference the non-generic base.
 
 ### Command vs Query
 
@@ -94,7 +112,7 @@ Cross-cutting concerns plug into the dispatch pipeline as behaviors that wrap ha
 ```
 Request arrives
   → Logging behavior (log entry)
-    → Sanitization behavior (clean ISanitizable inputs)
+    → Sanitization behavior (clean inputs marked with [Sanitize])
       → Validation behavior (run IValidator<T>, short-circuit on failure)
         → Authorization behavior (future — check permissions)
           → Handler executes

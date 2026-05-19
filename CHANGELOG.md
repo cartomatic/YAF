@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with changes grouped by date.
 
+## 2026-05-19
+
+### Changed
+
+- ADR 20260324-1146 (Application Layer Patterns) — folded source-level rationale into the ADR: sanitization "no domain consumers" placement reason, "no implementation surface to extend" attribute-vs-marker reason, and parameter-based `IBusinessEventLog.AppendAsync` clock-drift / call-site-duplication reason
+
+### Removed
+
+- ADR-1146 drift markers in source XML docs for `SanitizeAttribute`, `IBusinessEventLog`, `BusinessLogEntry` (now redundant with ADR text)
+
 ## 2026-05-06
 
 ### Added

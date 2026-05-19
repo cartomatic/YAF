@@ -22,30 +22,18 @@ namespace Yaf.Application.Audit;
 /// always project to the underlying <c>Value</c> when constructing the entry.
 /// </para>
 /// <para>
-/// <b>ADR-1146 drift.</b> Two property names/types differ from the reference example
-/// in ADR-1146:
+/// <b>Naming.</b> <see cref="ActorId"/> uses the YAF domain vocabulary
+/// (<see cref="Yaf.Domain.ActorId"/>, <see cref="Yaf.Domain.Interfaces.IActorScoped"/>)
+/// so callers do not translate names across layers.
 /// </para>
-/// <list type="bullet">
-///   <item>
-///     <description>
-///       <b><see cref="ActorId"/> (renamed from <c>IdentityId</c>).</b> "Actor" is the
-///       term used throughout the YAF domain layer
-///       (<see cref="Yaf.Domain.ActorId"/>, <see cref="Yaf.Domain.Interfaces.IActorScoped"/>);
-///       the audit entry adopts the same vocabulary so callers do not translate names
-///       across layers.
-///     </description>
-///   </item>
-///   <item>
-///     <description>
-///       <b><see cref="ActivityId"/> is <see cref="string"/> rather than
-///       <see cref="Guid"/>.</b> .NET's distributed tracing model expresses activity
-///       identifiers as W3C trace-context strings (for example
-///       <c>"00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"</c>), not GUIDs.
-///       Storing the formatted string preserves the value end-to-end without lossy
-///       conversion.
-///     </description>
-///   </item>
-/// </list>
+/// <para>
+/// <b><see cref="ActivityId"/> shape.</b> Stored as <see cref="string"/> rather than
+/// <see cref="Guid"/>. .NET's distributed tracing model expresses activity identifiers
+/// as W3C trace-context strings (for example
+/// <c>"00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"</c>), not GUIDs;
+/// storing the formatted string preserves the value end-to-end without lossy
+/// conversion.
+/// </para>
 /// <para>
 /// All non-optional properties use the <c>required</c> modifier so the compiler
 /// enforces complete construction at the call site. <see cref="ActivityId"/> and

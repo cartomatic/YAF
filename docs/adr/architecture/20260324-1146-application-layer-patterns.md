@@ -32,8 +32,8 @@ The Application layer (Yaf.Application) orchestrates domain operations without c
 
 | Option | Assessment |
 |--------|------------|
-| **`[Sanitize]` attribute + pipeline sanitization** | **Selected.** Application defines a `[Sanitize]` attribute that targets individual properties or whole types. The pipeline sanitizer reflects on the instance and applies the configured rules to opted-in members. Lives in `Yaf.Application.Sanitization` — sanitization is a pipeline concern, not a domain concern. |
-| `ISanitizable` marker interface | Earlier draft. Type-level only — cannot opt in individual fields. The attribute form expresses sanitization at the field level when desired and composes with class-level opt-in for the common "sanitize all strings" case. |
+| **`[Sanitize]` attribute + pipeline sanitization** | **Selected.** Application defines a `[Sanitize]` attribute that targets individual properties or whole types. The pipeline sanitizer reflects on the instance and applies the configured rules to opted-in members. Lives in `Yaf.Application.Sanitization` — sanitization is a pipeline concern that happens to commands, queries, and DTOs as they enter the application, before the domain is touched. Domain entities encapsulate their own invariants and are never re-shaped from the outside, so a Domain-layer marker would have no domain consumers. |
+| `ISanitizable` marker interface | Earlier draft. Type-level only — cannot opt in individual fields. The attribute form expresses sanitization at the field level when desired and composes with class-level opt-in for the common "sanitize all strings" case. An attribute also carries no implementation surface that consumers might be tempted to extend — opting in is a declarative annotation, not a contract to implement. |
 | Manual sanitization in handlers | Repetitive, easy to forget. One missed handler is a vulnerability. |
 | Sanitization in the API layer only | API can catch HTML in request DTOs, but if commands are constructed from other sources (events, background jobs), those inputs are unsanitized. Application boundary is safer. |
 
@@ -155,7 +155,7 @@ Context fields are stored as primitive `Guid` / `string` types rather than domai
 - **Human-readable** — descriptions are meaningful to non-technical users ("Order #1234 placed by John Doe"), not technical ("INSERT into Orders")
 - **Queryable** — by aggregate, tenant, identity, time range, correlation
 
-**Usage:** Command handlers (or domain event handlers) append entries as part of the operation. The interface uses parameter-based call shape rather than passing a fully constructed `BusinessLogEntry`, so callers don't need to invent placeholder values for context fields the implementation will overwrite:
+**Usage:** Command handlers (or domain event handlers) append entries as part of the operation. The interface uses a parameter-based call shape rather than accepting a fully constructed `BusinessLogEntry`. Constructing the entry requires reading every ambient context provider plus a clock — work the implementation already does. Pushing that construction onto every caller would duplicate the wiring across the codebase and create opportunities for drift (different callers stamping `OccurredAtUtc` from different clocks, for example). The parameter-based shape keeps the call site honest about the only information it actually owns:
 
 ```
 public interface IBusinessEventLog

@@ -39,24 +39,6 @@ namespace Yaf.Application.Sanitization;
 /// mediator/dispatcher pipeline (sanitize → validate → handle). Validators always
 /// see normalized input.
 /// </para>
-/// <para>
-/// <b>ADR drift — placement in <c>Yaf.Application</c> rather than <c>Yaf.Domain</c>.</b>
-/// ADR-1146 originally placed sanitization abstractions in the Domain layer alongside
-/// other cross-cutting markers. YAF drifts from that decision and hosts
-/// <c>SanitizeAttribute</c> and <see cref="ISanitizer"/> in the Application layer
-/// instead. Sanitization is a pipeline concern — it happens to commands, queries, and
-/// DTOs as they enter the application, before the domain is touched. Domain entities
-/// encapsulate invariants and never need to be re-shaped from the outside, so a
-/// Domain-layer marker would have no domain consumers.
-/// </para>
-/// <para>
-/// <b>Drift from earlier marker design.</b> An earlier revision used an
-/// <c>ISanitizable</c> marker interface for opt-in. The attribute form was chosen
-/// instead because (a) it expresses sanitization at the field level rather than only
-/// at the type level, (b) it composes naturally with class-level opt-in for the common
-/// "all strings" case, and (c) it carries no implementation surface that consumers
-/// might be tempted to extend.
-/// </para>
 /// </remarks>
 [AttributeUsage(
     AttributeTargets.Property | AttributeTargets.Class | AttributeTargets.Struct,

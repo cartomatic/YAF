@@ -35,18 +35,6 @@ namespace Yaf.Application.Audit;
 /// the unit of work). Returning <c>Task&lt;Result&gt;</c> would suggest that
 /// callers inspect a domain-shaped error, which they do not.
 /// </para>
-/// <para>
-/// <b>ADR-1146 drift — parameter-based signature instead of entry-based.</b>
-/// ADR-1146's reference example exposed a method that accepted a fully constructed
-/// <c>BusinessLogEntry</c>. YAF deliberately drifts to a parameter-based signature
-/// because constructing the entry requires reading every ambient context provider
-/// plus a clock — work that the implementation already does. Pushing that
-/// construction onto every caller would duplicate the wiring across the codebase
-/// and create opportunities for drift (different callers stamping
-/// <see cref="BusinessLogEntry.OccurredAtUtc"/> from different clocks, for
-/// example). The parameter-based shape keeps the call site honest about the only
-/// information it actually owns.
-/// </para>
 /// </remarks>
 public interface IBusinessEventLog
 {

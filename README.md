@@ -26,4 +26,15 @@ See [dev setup](docs/general/dev-setup.md) for environment setup (Claude Code pl
 
 ## Current State
 
-The project is in its early phase — domain building blocks (`ValueObject`, memento pattern) are implemented, CI/CD pipeline is operational with build, test, coverage, and semantic versioning via GitVersion.
+~~The project is in its early phase — domain building blocks (`ValueObject`, memento pattern) are implemented, CI/CD pipeline is operational with build, test, coverage, and semantic versioning via GitVersion.~~
+ 
+ While it's been fun playing with yaf initially, the other obligation exhausted my time and i had no chance to continue with the approach taken initially. Therefore this project is now retired.
+ 
+ Instead of trying to tailor the framework by instructing the agent what to do step by step, the following approach has been taken
+ * basic extraction of the concepts that were already in place
+ * extra requiremets
+ * cross check with the current state of dotnet best practices
+ * a more or less complete spec created
+ * a software factory as an executor of the spec
+
+The new home for the idea is now here: https://github.com/wtf-corp/yaf-backend-framework
